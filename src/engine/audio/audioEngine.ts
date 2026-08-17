@@ -1,78 +1,143 @@
 import { useAudioStore } from '../../store/audioStore';
 
 class AudioEngine {
-  private audioCtx: AudioContext | null = null;
-  private analyser: AnalyserNode | null = null;
-  private audioElement: HTMLAudioElement;
-  private sourceNode: MediaElementAudioSourceNode | null = null;
+  private audioCtx: AudioContext;
+  private analyser: AnalyserNode;
+  private gainNode: GainNode;
+  private sourceNode: AudioBufferSourceNode | null = null;
+  private audioBuffer: AudioBuffer | null = null;
+
+  // Variabel untuk melacak waktu secara manual
+  private startTime: number = 0;
+  private pausedAt: number = 0;
+  private isPlaying: boolean = false;
+  private animationFrameId: number | null = null;
 
   constructor() {
-    this.audioElement = new Audio();
-    this.audioElement.crossOrigin = "anonymous"; // Penting jika load via asset://
+    this.audioCtx = new AudioContext();
+    this.analyser = this.audioCtx.createAnalyser();
+    this.analyser.fftSize = 2048; // Resolusi FFT visualizer
+    this.gainNode = this.audioCtx.createGain();
 
-    // Sinkronisasi event HTML Audio murni ke state Zustand
-    this.audioElement.addEventListener('timeupdate', () => {
-      useAudioStore.getState().setCurrentTime(this.audioElement.currentTime);
-    });
-    this.audioElement.addEventListener('loadedmetadata', () => {
-      useAudioStore.getState().setDuration(this.audioElement.duration);
-    });
-    this.audioElement.addEventListener('ended', () => {
-      useAudioStore.getState().setIsPlaying(false);
-    });
+    // Rantai audio: Source -> Analyser -> Volume (Gain) -> Speaker (Destination)
+    this.analyser.connect(this.gainNode);
+    this.gainNode.connect(this.audioCtx.destination);
   }
 
-  // Inisialisasi AudioContext harus dipanggil setelah user berinteraksi dengan UI 
-  // (aturan Autoplay Policy browser modern)
-  private async initContext() {
-    if (!this.audioCtx) {
-      this.audioCtx = new AudioContext();
-      this.analyser = this.audioCtx.createAnalyser();
-      this.analyser.fftSize = 2048; // Resolusi standar untuk visualizer
-
-      this.sourceNode = this.audioCtx.createMediaElementSource(this.audioElement);
-      this.sourceNode.connect(this.analyser);
-      this.analyser.connect(this.audioCtx.destination);
-    }
+  private async ensureContextRunning() {
     if (this.audioCtx.state === 'suspended') {
       await this.audioCtx.resume();
     }
   }
 
-  public loadFile(url: string, fileName: string) {
-    this.audioElement.src = url;
-    this.audioElement.load();
-    this.audioElement.volume = useAudioStore.getState().volume / 100;
-    
-    useAudioStore.getState().setFileName(fileName);
+  // Menerima ArrayBuffer langsung dari Rust (memori murni)
+  public async loadAudioBuffer(arrayBuffer: ArrayBuffer, fileName: string) {
+    this.stopCurrent();
+    this.pausedAt = 0;
+    useAudioStore.getState().setCurrentTime(0);
     useAudioStore.getState().setIsPlaying(false);
-  }
 
-  public async togglePlay() {
-    await this.initContext();
-    if (!this.audioElement.src) return;
-
-    if (this.audioElement.paused) {
-      await this.audioElement.play();
-      useAudioStore.getState().setIsPlaying(true);
-    } else {
-      this.audioElement.pause();
-      useAudioStore.getState().setIsPlaying(false);
+    try {
+      // Dekode byte data menjadi format audio yang dipahami Web Audio API
+      this.audioBuffer = await this.audioCtx.decodeAudioData(arrayBuffer);
+      useAudioStore.getState().setDuration(this.audioBuffer.duration);
+      useAudioStore.getState().setFileName(fileName);
+      
+      this.setVolume(useAudioStore.getState().volume);
+    } catch (error) {
+      console.error("Gagal decode audio:", error);
     }
   }
 
-  public seek(time: number) {
-    this.audioElement.currentTime = time;
+  private stopCurrent() {
+    if (this.sourceNode) {
+      this.sourceNode.stop();
+      this.sourceNode.disconnect();
+      this.sourceNode = null;
+    }
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+  }
+
+  // Loop manual (60fps) untuk mengupdate state progress bar
+  private startLoop() {
+    const loop = () => {
+      if (this.isPlaying) {
+        // Rumus melacak currentTime saat menggunakan AudioBuffer
+        const current = this.pausedAt + (this.audioCtx.currentTime - this.startTime);
+        
+        // Deteksi lagu selesai
+        if (this.audioBuffer && current >= this.audioBuffer.duration) {
+          this.isPlaying = false;
+          this.pausedAt = 0;
+          useAudioStore.getState().setIsPlaying(false);
+          useAudioStore.getState().setCurrentTime(this.audioBuffer.duration);
+          this.stopCurrent();
+          return;
+        }
+
+        useAudioStore.getState().setCurrentTime(current);
+        this.animationFrameId = requestAnimationFrame(loop);
+      }
+    };
+    this.animationFrameId = requestAnimationFrame(loop);
+  }
+
+  public async togglePlay() {
+    await this.ensureContextRunning();
+    if (!this.audioBuffer) return;
+
+    if (this.isPlaying) {
+      // Jeda (Pause)
+      this.pausedAt += this.audioCtx.currentTime - this.startTime;
+      this.isPlaying = false;
+      useAudioStore.getState().setIsPlaying(false);
+      this.stopCurrent();
+    } else {
+      // Mulai (Play)
+      this.sourceNode = this.audioCtx.createBufferSource();
+      this.sourceNode.buffer = this.audioBuffer;
+      this.sourceNode.connect(this.analyser);
+      
+      this.startTime = this.audioCtx.currentTime;
+      this.sourceNode.start(0, this.pausedAt); // Putar dari titik terakhir jeda
+      
+      this.isPlaying = true;
+      useAudioStore.getState().setIsPlaying(true);
+      this.startLoop();
+    }
+  }
+
+  public async seek(time: number) {
+    if (!this.audioBuffer) return;
+    
+    const wasPlaying = this.isPlaying;
+    if (wasPlaying) {
+      this.stopCurrent();
+    }
+    
+    this.pausedAt = time;
     useAudioStore.getState().setCurrentTime(time);
+
+    // Jika lagu sedang berputar, langsung putar lagi dari titik seek yang baru
+    if (wasPlaying) {
+      this.sourceNode = this.audioCtx.createBufferSource();
+      this.sourceNode.buffer = this.audioBuffer;
+      this.sourceNode.connect(this.analyser);
+      
+      this.startTime = this.audioCtx.currentTime;
+      this.sourceNode.start(0, this.pausedAt);
+      this.startLoop();
+    }
   }
 
   public setVolume(volume: number) {
-    // Range volume HTML Audio adalah 0.0 - 1.0
-    this.audioElement.volume = Math.max(0, Math.min(1, volume / 100));
+    this.gainNode.gain.value = Math.max(0, Math.min(1, volume / 100));
     useAudioStore.getState().setVolume(volume);
   }
 
-  // Akan dipanggil 60fps oleh visualizer (direncanakan untuk Tahap 4)
   public getFrequencyData(): Uint8Array {
     if (!this.analyser) return new Uint8Array(0);
     const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
@@ -81,5 +146,4 @@ class AudioEngine {
   }
 }
 
-// Singleton pattern agar instance engine hanya ada satu
 export const audioEngine = new AudioEngine();

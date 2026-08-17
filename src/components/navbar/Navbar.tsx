@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from '../ui/Button';
 import { open } from '@tauri-apps/plugin-dialog';
-import { convertFileSrc } from '@tauri-apps/api/core';
+// Ubah import core, gunakan invoke
+import { invoke } from '@tauri-apps/api/core'; 
 import { audioEngine } from '../../engine/audio/audioEngine';
 
 export const Navbar: React.FC = () => {
@@ -11,11 +12,15 @@ export const Navbar: React.FC = () => {
         multiple: false,
         filters: [{ name: 'Audio', extensions: ['mp3', 'wav', 'ogg', 'aac'] }]
       });
+      
       if (typeof selected === 'string') {
-        // convertFileSrc mengubah path OS lokal menjadi protokol asset:// yang bisa dibaca JS
-        const assetUrl = convertFileSrc(selected);
+        const fileData = await invoke<number[]>('read_local_file', { path: selected });
+        const uint8Array = new Uint8Array(fileData);
         const fileName = selected.split(/[/\\]/).pop() || 'Unknown';
-        audioEngine.loadFile(assetUrl, fileName);
+        
+        // HAPUS pembuatan Blob dan URL.createObjectURL
+        // LANGSUNG panggil fungsi engine baru dengan format arrayBuffer
+        await audioEngine.loadAudioBuffer(uint8Array.buffer, fileName);
       }
     } catch (err) {
       console.error("Gagal load audio:", err);
