@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { VisualizerPanel } from './visualizer/VisualizerPanel';
-// Import panel lain di sini...
+import { TextPanel } from './text/TextPanel'; // 1. Tambahkan import komponen Teks ini
 
 export const LeftPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState('viz');
@@ -19,9 +19,16 @@ export const LeftPanel: React.FC = () => {
         ))}
       </div>
       <div className="flex-1 overflow-y-auto">
+        {/* 2. Update logika render berdasarkan tab yang aktif */}
         {activeTab === 'viz' && <VisualizerPanel />}
-        {/* Render panel lain berdasarkan state tab */}
-        {activeTab !== 'viz' && <div className="p-4 text-gray-500 text-sm text-center">Panel {activeTab} (Mockup Standby)</div>}
+        {activeTab === 'teks' && <TextPanel />} 
+        
+        {/* Placeholder untuk tab BG dan Overlay yang belum dirangkai */}
+        {activeTab !== 'viz' && activeTab !== 'teks' && (
+          <div className="p-4 text-gray-500 text-sm text-center">
+            Panel {activeTab} (Mockup Standby)
+          </div>
+        )}
       </div>
     </div>
   );

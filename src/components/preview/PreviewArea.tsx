@@ -3,17 +3,17 @@ import { useAudioStore } from '../../store/audioStore';
 import { audioEngine } from '../../engine/audio/audioEngine';
 import { formatTime } from '../../utils/format';
 import { rendererEngine } from '../../engine/renderer/RendererEngine';
+import { BackgroundLayer } from '../../engine/layers/BackgroundLayer';
+import { OverlayLayer } from '../../engine/layers/OverlayLayer';
+import { TextLayer } from '../../engine/layers/TextLayer';
 
 export const PreviewArea: React.FC = () => {
   // 1. Variabel ini HARUS ada agar Audio Controller di bawah tidak crash
   const { isPlaying, currentTime, duration, fileName, volume } = useAudioStore();
-  
   const vizContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (vizContainerRef.current) {
-      rendererEngine.mount(vizContainerRef.current);
-    }
+    if (vizContainerRef.current) rendererEngine.mount(vizContainerRef.current);
     return () => rendererEngine.unmount();
   }, []);
 
@@ -23,16 +23,24 @@ export const PreviewArea: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-background p-4 h-full">
-      {/* Container Visualizer */}
-      <div 
-        ref={vizContainerRef}
-        className="flex-1 w-full bg-black rounded-xl border border-gray-800 relative overflow-hidden shadow-2xl"
-      >
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
-          <div className="text-5xl font-bold text-purple-400 drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]">
-            Teks baru
-          </div>
-        </div>
+      {/* 16:9 Screen (Layering Area) */}
+      <div className="flex-1 w-full bg-black rounded-xl border border-gray-800 relative overflow-hidden shadow-2xl">
+        
+        {/* Layer 0: Background Paling Belakang */}
+        <BackgroundLayer />
+
+        {/* Layer 1: Overlay (Belakang Viz) */}
+        <OverlayLayer position="Belakang Viz" />
+
+        {/* Layer 2: Visualizer (Canvas) */}
+        <div ref={vizContainerRef} className="absolute inset-0 z-20 pointer-events-none" />
+
+        {/* Layer 3: Overlay (Depan Viz) */}
+        <OverlayLayer position="Depan Viz" />
+
+        {/* Layer 4: Text Paling Depan */}
+        <TextLayer />
+        
       </div>
 
       {/* Audio Controller */}
