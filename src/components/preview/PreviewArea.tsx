@@ -1,10 +1,21 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useAudioStore } from '../../store/audioStore';
 import { audioEngine } from '../../engine/audio/audioEngine';
 import { formatTime } from '../../utils/format';
+import { rendererEngine } from '../../engine/renderer/RendererEngine';
 
 export const PreviewArea: React.FC = () => {
+  // 1. Variabel ini HARUS ada agar Audio Controller di bawah tidak crash
   const { isPlaying, currentTime, duration, fileName, volume } = useAudioStore();
+  
+  const vizContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (vizContainerRef.current) {
+      rendererEngine.mount(vizContainerRef.current);
+    }
+    return () => rendererEngine.unmount();
+  }, []);
 
   const handlePlayPause = () => audioEngine.togglePlay();
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => audioEngine.seek(Number(e.target.value));
@@ -12,17 +23,15 @@ export const PreviewArea: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col bg-background p-4 h-full">
-      {/* 16:9 Screen Preview */}
-      <div className="flex-1 w-full bg-black rounded-xl border border-gray-800 flex items-center justify-center relative overflow-hidden shadow-2xl">
-        {/* Dummy Visuals for static UI */}
-        <div className="absolute text-5xl font-bold text-purple-400 drop-shadow-[0_0_15px_rgba(168,85,247,0.5)] z-10">
-          Teks baru
-        </div>
-        {/* Dummy Visualizer Bars */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 flex items-end justify-center gap-1 px-8 opacity-70">
-          {[...Array(40)].map((_, i) => (
-            <div key={i} className="w-2 bg-gradient-to-t from-blue-500 to-green-400 rounded-t-sm" style={{ height: `${Math.random() * 100}%` }}></div>
-          ))}
+      {/* Container Visualizer */}
+      <div 
+        ref={vizContainerRef}
+        className="flex-1 w-full bg-black rounded-xl border border-gray-800 relative overflow-hidden shadow-2xl"
+      >
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+          <div className="text-5xl font-bold text-purple-400 drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]">
+            Teks baru
+          </div>
         </div>
       </div>
 
@@ -42,7 +51,6 @@ export const PreviewArea: React.FC = () => {
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
           </div>
-          {/* Ubah progress bar statis menjadi input range */}
           <input 
             type="range" 
             min={0} 
@@ -55,7 +63,6 @@ export const PreviewArea: React.FC = () => {
 
         <div className="flex items-center gap-2 w-32 ml-4">
           <span className="text-gray-400 text-sm">🔊</span>
-          {/* Ubah volume statis menjadi input range terkontrol */}
           <input 
             type="range" 
             min={0}

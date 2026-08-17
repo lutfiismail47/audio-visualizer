@@ -1,29 +1,48 @@
+export type RenderPrimitive = 'bar' | 'radial' | 'particle';
+export type PositionMode = 'center' | 'bottom' | 'full';
+
+export interface VisualizerConfig {
+  primitive: RenderPrimitive;
+  colors: string[];
+  mirror: boolean;
+  glow: boolean;
+  glowIntensity: number;
+  sensitivity: number;
+  particleCount?: number;
+  spinSpeed?: number;
+}
+
 export interface VisualizerPreset {
   id: string;
   name: string;
   category: 'Style' | 'Particle';
+  config: VisualizerConfig;
 }
 
+// Saya implementasikan 6 preset dulu sesuai permintaan untuk mewakili tiap primitive
 export const visualizerPresets: VisualizerPreset[] = [
-  // Style Category (Representative list based on requirements)
-  { id: 'bars-round', name: 'Bars Round', category: 'Style' },
-  { id: 'bars-dense', name: 'Bars Dense', category: 'Style' },
-  { id: 'octave-bars', name: 'Octave Bars', category: 'Style' },
-  { id: 'led-classic', name: 'LED Classic', category: 'Style' },
-  { id: 'led-prism', name: 'LED Prism', category: 'Style' },
-  { id: 'radial', name: 'Radial', category: 'Style' },
-  { id: 'radial-spin', name: 'Radial Spin', category: 'Style' },
-  { id: 'graph', name: 'Graph', category: 'Style' },
-  { id: 'mirror-center', name: 'Mirror Center', category: 'Style' },
-  { id: 'spiral', name: 'Spiral', category: 'Style' },
-  { id: 'ncs-classic', name: 'NCS Classic', category: 'Style' },
-  { id: 'wave-mirror', name: 'Wave Mirror', category: 'Style' },
-  { id: 'cyber-grid', name: 'Cyber Grid', category: 'Style' },
-  // Particle Category
-  { id: 'dust', name: 'Bintik (Dust)', category: 'Particle' },
-  { id: 'sparkles', name: 'Sparkles', category: 'Particle' },
-  { id: 'stars', name: 'Stars', category: 'Particle' },
-  { id: 'snow', name: 'Gentle Snow', category: 'Particle' },
-  { id: 'meteor', name: 'Meteor Shower', category: 'Particle' },
-  // ... (Daftar ini bisa Anda lengkapi penuh sesuai requirements.md)
+  { 
+    id: 'bars-round', name: 'Bars Round', category: 'Style',
+    config: { primitive: 'bar', colors: ['#ffffff'], mirror: false, glow: false, glowIntensity: 0, sensitivity: 1.2 }
+  },
+  { 
+    id: 'bars-rainbow', name: 'Bars Rainbow', category: 'Style',
+    config: { primitive: 'bar', colors: ['#ff0000', '#00ff00', '#0000ff'], mirror: false, glow: false, glowIntensity: 0, sensitivity: 1.0 }
+  },
+  { 
+    id: 'bars-neon', name: 'Bars Neon', category: 'Style',
+    config: { primitive: 'bar', colors: ['#a855f7', '#ec4899'], mirror: true, glow: true, glowIntensity: 15, sensitivity: 1.5 }
+  },
+  { 
+    id: 'radial', name: 'Radial', category: 'Style',
+    config: { primitive: 'radial', colors: ['#3b82f6'], mirror: false, glow: false, glowIntensity: 0, sensitivity: 1.0 }
+  },
+  { 
+    id: 'radial-spin', name: 'Radial Spin', category: 'Style',
+    config: { primitive: 'radial', colors: ['#10b981', '#3b82f6'], mirror: true, glow: true, glowIntensity: 10, sensitivity: 1.2, spinSpeed: 0.005 }
+  },
+  { 
+    id: 'dust', name: 'Bintik (Dust)', category: 'Particle',
+    config: { primitive: 'particle', colors: ['#f59e0b'], mirror: false, glow: true, glowIntensity: 5, sensitivity: 2.0, particleCount: 100 }
+  }
 ];
