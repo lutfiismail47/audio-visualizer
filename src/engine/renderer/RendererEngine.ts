@@ -75,30 +75,29 @@ class RendererEngine {
     const width = this.canvas2d.width;
     const height = this.canvas2d.height;
 
-    // Bersihkan Canvas 2D di setiap frame
+    // Bersihkan Canvas 2D SEKALI di awal frame
     if (this.ctx) this.ctx.clearRect(0, 0, width, height);
 
-    if (store.activePreset && store.activePreset.config) {
-      const config = store.activePreset.config;
-      
-      // LOGIKA BARU: Atur visibilitas dan delegasi render
-      if (config.primitive === 'particle') {
-        this.particleRenderer.setVisible(true); // Tampilkan WebGL
-        this.particleRenderer.render(data, config, width, height, store.size);
-      } else {
-        this.particleRenderer.setVisible(false); // Sembunyikan WebGL
-        
-        // Render Canvas2D
-        if (config.primitive === 'bar' && this.ctx) {
-          this.barRenderer.render(this.ctx, data, config, width, height, store.size, store.position);
-        } else if (config.primitive === 'radial' && this.ctx) {
-          this.radialRenderer.render(this.ctx, data, config, width, height, store.size, store.position);
-        }
-      }
+    // Kumpulkan layer tipe partikel untuk dilempar ke ParticleRenderer (PixiJS)
+    const particleLayers = store.layers.filter(l => l.preset?.config.primitive === 'particle');
+    if (particleLayers.length > 0) {
+      this.particleRenderer.setVisible(true);
+      this.particleRenderer.render(data, particleLayers, width, height);
     } else {
-      // Jika preset dihapus (kosong)
       this.particleRenderer.setVisible(false);
     }
+
+    // Looping semua layer untuk menggambar visual 2D secara berurutan
+    store.layers.forEach(layer => {
+      if (!layer.preset || !this.ctx) return;
+      const config = layer.preset.config;
+
+      if (config.primitive === 'bar') {
+        this.barRenderer.render(this.ctx, data, config, width, height, layer.size, layer.position);
+      } else if (config.primitive === 'radial') {
+        this.radialRenderer.render(this.ctx, data, config, width, height, layer.size, layer.position);
+      }
+    });
 
     // --- ADAPTIVE FPS LOGIC UNTUK PC LEMAH ---
     const t1 = performance.now();
