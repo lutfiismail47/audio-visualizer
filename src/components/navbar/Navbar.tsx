@@ -1,12 +1,12 @@
 import React from 'react';
 import { Button } from '../ui/Button';
 import { open } from '@tauri-apps/plugin-dialog';
-// Ubah import core, gunakan invoke
-import { invoke } from '@tauri-apps/api/core'; 
+import { readFile } from '@tauri-apps/plugin-fs'; 
 import { audioEngine } from '../../engine/audio/audioEngine';
+import { exportVideo } from '../../engine/export/exportEngine';
+import { useAudioStore } from '../../store/audioStore';
 
-export const Navbar: React.FC = () => {
-  const handleLoadAudio = async () => {
+export const Navbar: React.FC = () => {const handleLoadAudio = async () => {
     try {
       const selected = await open({
         multiple: false,
@@ -14,12 +14,13 @@ export const Navbar: React.FC = () => {
       });
       
       if (typeof selected === 'string') {
-        const fileData = await invoke<number[]>('read_local_file', { path: selected });
-        const uint8Array = new Uint8Array(fileData);
+        // 2. Baca file langsung menjadi Uint8Array tanpa IPC JSON
+        const uint8Array = await readFile(selected);
         const fileName = selected.split(/[/\\]/).pop() || 'Unknown';
         
-        // HAPUS pembuatan Blob dan URL.createObjectURL
-        // LANGSUNG panggil fungsi engine baru dengan format arrayBuffer
+        useAudioStore.getState().setAudioPath(selected);
+        
+        // 3. Masukkan buffernya ke audio engine
         await audioEngine.loadAudioBuffer(uint8Array.buffer, fileName);
       }
     } catch (err) {
@@ -52,15 +53,22 @@ export const Navbar: React.FC = () => {
           <Button>Hapus BG</Button>
         </div>
         <Button>Full</Button>
-        <div className="flex items-center gap-2 ml-4">
-          <input type="text" defaultValue="Percobaan 1" className="bg-panel border border-gray-800 rounded px-2 py-1 text-sm w-32" />
-          <span className="text-xs text-gray-500">.mp4</span>
-          <select className="bg-panel border border-gray-800 rounded px-2 py-1 text-sm text-gray-300">
-            <option>1080p</option>
-            <option>720p</option>
+        <select 
+            id="res-select"
+            className="bg-panel border border-gray-800 rounded px-2 py-1 text-sm text-gray-300"
+          >
+            <option value="1080">1080p</option>
+            <option value="720">720p</option>
           </select>
-          <Button className="bg-red-900/30 text-red-400 border-red-900 hover:bg-red-900/50">Rekam</Button>
-        </div>
+          <Button 
+            className="bg-red-900/30 text-red-400 border-red-900 hover:bg-red-900/50"
+            onClick={() => {
+              const res = parseInt((document.getElementById('res-select') as HTMLSelectElement).value) as 720 | 1080;
+              exportVideo(res);
+            }}
+          >
+            Rekam
+          </Button>
       </div>
     </nav>
   );

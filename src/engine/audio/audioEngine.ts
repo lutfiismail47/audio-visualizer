@@ -144,6 +144,10 @@ class AudioEngine {
     this.analyser.getByteFrequencyData(dataArray);
     return dataArray;
   }
+
+  public getAudioBuffer(): AudioBuffer | null {
+    return this.audioBuffer;
+  }
 }
 
 export const audioEngine = new AudioEngine();
