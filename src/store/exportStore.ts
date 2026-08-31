@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 interface ExportState {
   isExporting: boolean;
-  progress: number; // 0 - 100
+  progress: number;
   statusText: string;
   setExportState: (state: Partial<ExportState>) => void;
 }

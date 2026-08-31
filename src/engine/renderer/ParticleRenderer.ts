@@ -7,20 +7,21 @@ interface Particle {
   y: number;
   speedY: number;
   baseRadius: number;
+  baseX: number;
+  angle: number;
+  shape: string;
 }
 
 export class ParticleRenderer {
   private app: Application | null = null;
   private isInitialized = false;
   
-  // Mengelompokkan sprite partikel berdasarkan ID layer dari Store
   private particleGroups: Map<string, Particle[]> = new Map();
 
   public async init(container: HTMLDivElement, width: number, height: number) {
     if (this.isInitialized) return;
     this.app = new Application();
     
-    // Pixi v8 initialization
     await this.app.init({ width, height, backgroundAlpha: 0, antialias: true });
     if (this.app.canvas) {
       this.app.canvas.style.position = 'absolute';
@@ -39,52 +40,82 @@ export class ParticleRenderer {
     for (let i = 0; i < 10; i++) sum += data[i];
     const avgBass = sum / 10;
 
-    // Bersihkan partikel dari layer yang sudah dihapus/diganti
     const activeLayerIds = layers.map(l => l.id);
     for (const [id, particles] of this.particleGroups.entries()) {
       if (!activeLayerIds.includes(id)) {
-        particles.forEach(p => p.sprite.destroy()); // Bersihkan memori sprite
+        particles.forEach(p => p.sprite.destroy()); 
         this.particleGroups.delete(id);
       }
     }
 
-    // Render partikel per layer yang aktif
     layers.forEach(layer => {
       const config = layer.preset.config;
       const size = layer.size;
       const avg = avgBass * config.sensitivity;
 
-      if (!this.particleGroups.has(layer.id)) {
-        this.particleGroups.set(layer.id, []);
-      }
+      if (!this.particleGroups.has(layer.id)) this.particleGroups.set(layer.id, []);
       const particles = this.particleGroups.get(layer.id)!;
-
       const count = config.particleCount || 50;
       
-      // Spawn jika kurang
       while (particles.length < count) {
         const p = new Graphics();
-        p.circle(0, 0, Math.random() * 3 + 1);
-        p.fill(config.colors[0]);
+        const startX = Math.random() * width;
+        let startY = Math.random() * height;
+        let speed = Math.random() * 1 + 0.5;
+        let color = config.colors[Math.floor(Math.random() * config.colors.length)];
         
-        const particle = {
-          sprite: p, x: Math.random() * width, y: Math.random() * height,
-          speedY: Math.random() * 1 + 0.5, baseRadius: Math.random() * 2 + 1
-        };
-        particles.push(particle);
+        if (config.shape === 'smoke') {
+          p.circle(0, 0, Math.random() * 40 + 40);
+          p.fill({ color: color, alpha: 0.03 }); 
+          speed = Math.random() * 0.5 + 0.2;
+          startY = height + 50;
+        } 
+        else if (config.shape === 'snow') {
+          const s = Math.random() * 3 + 2;
+          p.moveTo(-s, 0); p.lineTo(s, 0);
+          p.moveTo(0, -s); p.lineTo(0, s);
+          p.moveTo(-s*0.7, -s*0.7); p.lineTo(s*0.7, s*0.7);
+          p.moveTo(-s*0.7, s*0.7); p.lineTo(s*0.7, -s*0.7);
+          p.stroke({ color: color, width: 1.5, alpha: Math.random() * 0.5 + 0.5 });
+          speed = Math.random() * 1.5 + 1.0;
+          startY = -50;
+        } 
+        else {
+          p.circle(0, 0, Math.random() * 3 + 1);
+          p.fill(color);
+        }
+        
+        particles.push({
+          sprite: p, x: startX, y: startY, baseX: startX, angle: Math.random() * Math.PI * 2,
+          speedY: speed, baseRadius: 1, shape: config.shape || 'dust'
+        });
         this.app!.stage.addChild(p);
       }
 
-      // Update pergerakan
       const scaleMultiplier = 1 + (avg / 255) * (size / 50);
+      
       particles.forEach(p => {
-        p.y -= p.speedY + (avg / 255) * 2;
-        if (p.y < -10) p.y = height + 10; 
-        
+        if (p.shape === 'snow') {
+          p.y += p.speedY; 
+          p.angle += 0.02;
+          p.x = p.baseX + Math.sin(p.angle) * 30;
+          if (p.y > height + 20) { p.y = -20; p.baseX = Math.random() * width; }
+          p.sprite.scale.set(1 + (avg / 255) * 0.5);
+        } 
+        else if (p.shape === 'smoke') {
+          p.y -= p.speedY;
+          if (p.y < -100) { p.y = height + 100; p.x = Math.random() * width; }
+          p.sprite.scale.set(1 + (avg / 255) * (size / 20)); 
+        } 
+        else {
+          p.y -= p.speedY + (avg / 255) * 2;
+          if (p.y < -10) { p.y = height + 10; p.x = Math.random() * width; }
+          p.sprite.scale.set(scaleMultiplier);
+          p.sprite.alpha = config.glow ? Math.min(1, 0.4 + (avg / 255)) : 0.6;
+        }
+
         p.sprite.x = p.x;
         p.sprite.y = p.y;
-        p.sprite.scale.set(scaleMultiplier);
-        p.sprite.alpha = config.glow ? Math.min(1, 0.4 + (avg / 255)) : 0.6;
       });
     });
   }

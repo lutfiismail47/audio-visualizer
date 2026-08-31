@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Cinzel&family=DM+Sans&family=Great+Vibes&family=Lobster&family=Montserrat&family=Orbitron&family=Oswald&family=Pacifico&family=Playfair+Display&family=Poppins&family=Press+Start+2P&family=Raleway&family=Roboto+Slab&family=Syne&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Knewave&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Orbitron:wght@400..900&family=Oswald:wght@200..700&family=Permanent+Marker&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Poppins:ital,wght@0,100..900;1,100..900&family=Press+Start+2P&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Rubik:ital,wght@0,300..900;1,300..900&family=Zen+Dots&display=swap');
 
 /* Efek Teks */
 .text-fx-bayangan {
@@ -22,7 +22,42 @@
   text-shadow: 2px 2px 2px rgba(255, 255, 255, 0.3), -2px -2px 2px rgba(0, 0, 0, 0.8);
 }
 
-/* Animasi Keyframes Dasar */
+:root {
+  --beat-scale: 1;
+  --beat-pan: 0px;
+  --beat-shake: 0px;
+  --beat-flash: 1;
+  --beat-blitz: 1;
+}
+
+/* Animasi Dinamis Reaktif terhadap Beat Audio */
+.anim-denyut {
+  transform: scale(var(--beat-scale));
+  transition: transform 0.05s ease-out;
+}
+
+.anim-zoom {
+  transform: scale(calc(1 + (var(--beat-scale) - 1) * 1.5));
+  transition: transform 0.05s ease-out;
+}
+
+.anim-shake {
+  transform: translateX(var(--beat-shake));
+}
+
+.anim-pan {
+  transform: translateX(var(--beat-pan));
+  transition: transform 0.1s linear;
+}
+
+.anim-flash {
+  opacity: var(--beat-flash);
+}
+
+.anim-blitz {
+  opacity: var(--beat-blitz);
+}
+
 @keyframes anim-float {
 
   0%,
@@ -35,32 +70,8 @@
   }
 }
 
-@keyframes anim-denyut {
-
-  0%,
-  100% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.05);
-  }
-}
-
-@keyframes anim-shake {
-
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-
-  25% {
-    transform: translateX(-5px);
-  }
-
-  75% {
-    transform: translateX(5px);
-  }
+.anim-float {
+  animation: anim-float 4s ease-in-out infinite;
 }
 
 @keyframes anim-putar-cw {
@@ -73,69 +84,22 @@
   }
 }
 
-.anim-float {
-  animation: anim-float 4s ease-in-out infinite;
-}
-
-.anim-denyut {
-  animation: anim-denyut 2s ease-in-out infinite;
-}
-
-.anim-shake {
-  animation: anim-shake 0.5s ease-in-out infinite;
-}
-
 .anim-putar {
   animation: anim-putar-cw linear infinite;
 }
 
-@keyframes anim-pan {
-
-  0%,
-  100% {
-    transform: translateX(-50px);
+@keyframes anim-putar-ccw {
+  from {
+    transform: rotate(0deg);
   }
 
-  50% {
-    transform: translateX(50px);
+  to {
+    transform: rotate(-360deg);
   }
 }
 
-@keyframes anim-blitz {
-
-  0%,
-  49% {
-    opacity: 1;
-  }
-
-  50%,
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes anim-flash {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.1;
-  }
-}
-
-.anim-pan {
-  animation: anim-pan 6s ease-in-out infinite;
-}
-
-.anim-blitz {
-  animation: anim-blitz 0.15s linear infinite;
-}
-
-.anim-flash {
-  animation: anim-flash 1.5s ease-in-out infinite;
+.anim-putar-ccw {
+  animation: anim-putar-ccw linear infinite;
 }
 
 @tailwind base;
@@ -145,5 +109,16 @@
 @layer base {
   body {
     @apply bg-background text-white m-0 p-0 overflow-hidden font-sans select-none;
+  }
+
+  select {
+    background-color: #111111 !important;
+    color: #e5e7eb !important;
+    color-scheme: dark !important;
+  }
+
+  option {
+    background-color: #111111 !important;
+    color: #e5e7eb !important;
   }
 }

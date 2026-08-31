@@ -3,7 +3,6 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_shell::process::CommandChild;
 use tauri_plugin_shell::ShellExt;
 
-// Menyimpan instance proses FFmpeg yang sedang berjalan
 struct ExportProcess(Mutex<Option<CommandChild>>);
 
 #[tauri::command]
@@ -18,7 +17,7 @@ async fn start_export(
 ) -> Result<(), String> {
     let shell = app.shell();
     let cmd = shell.sidecar("ffmpeg").map_err(|e| e.to_string())?.args([
-        "-y", // Overwrite file
+        "-y",
         "-f",
         "rawvideo",
         "-vcodec",
@@ -30,11 +29,11 @@ async fn start_export(
         "-r",
         &fps.to_string(),
         "-i",
-        "-", // Ambil video frame dari stdin (frontend)
+        "-",
         "-i",
-        &audio_path, // Ambil audio dari file asli
+        &audio_path,
         "-vframes",
-        &total_frames.to_string(), // Otomatis stop jika frame ini tercapai
+        &total_frames.to_string(),
         "-c:v",
         "libx264",
         "-preset",
@@ -68,9 +67,17 @@ async fn push_frame(app: AppHandle, frame: Vec<u8>) -> Result<(), String> {
 async fn finish_export(app: AppHandle) -> Result<(), String> {
     let export_process = app.state::<ExportProcess>();
     let mut state = export_process.0.lock().unwrap();
-    // Dengan membebaskan (take) child, Rust menutup pipe stdin,
-    // sehingga FFmpeg menyelesaikan encode dan menutup file mp4.
     let _ = state.take();
+    Ok(())
+}
+
+#[tauri::command]
+async fn cancel_export(app: AppHandle) -> Result<(), String> {
+    let export_process = app.state::<ExportProcess>();
+    let mut state = export_process.0.lock().unwrap();
+    if let Some(child) = state.take() {
+        let _ = child.kill(); 
+    }
     Ok(())
 }
 
@@ -85,7 +92,8 @@ pub fn run() {
             read_local_file,
             start_export,
             push_frame,
-            finish_export
+            finish_export,
+            cancel_export
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

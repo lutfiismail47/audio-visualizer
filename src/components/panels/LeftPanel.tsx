@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { VisualizerPanel } from './visualizer/VisualizerPanel';
-import { TextPanel } from './text/TextPanel'; // 1. Tambahkan import komponen Teks ini
+import { TextPanel } from './text/TextPanel';
+import { OverlayPanel } from './overlay/OverlayPanel';
+import { BgPanel } from './bg/BgPanel';
 
 export const LeftPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState('viz');
@@ -8,7 +10,7 @@ export const LeftPanel: React.FC = () => {
   return (
     <div className="w-[380px] h-full border-r border-gray-800 bg-background flex flex-col">
       <div className="flex p-2 gap-1 border-b border-gray-800 bg-panel">
-        {['Viz', 'Teks', 'BG', 'Overlay'].map(tab => (
+        {['Viz', 'Teks', 'Overlay', 'BG'].map(tab => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab.toLowerCase())}
@@ -19,16 +21,10 @@ export const LeftPanel: React.FC = () => {
         ))}
       </div>
       <div className="flex-1 overflow-y-auto">
-        {/* 2. Update logika render berdasarkan tab yang aktif */}
         {activeTab === 'viz' && <VisualizerPanel />}
         {activeTab === 'teks' && <TextPanel />} 
-        
-        {/* Placeholder untuk tab BG dan Overlay yang belum dirangkai */}
-        {activeTab !== 'viz' && activeTab !== 'teks' && (
-          <div className="p-4 text-gray-500 text-sm text-center">
-            Panel {activeTab} (Mockup Standby)
-          </div>
-        )}
+        {activeTab === 'overlay' && <OverlayPanel />} 
+        {activeTab === 'bg' && <BgPanel />}
       </div>
     </div>
   );

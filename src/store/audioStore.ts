@@ -21,7 +21,7 @@ export const useAudioStore = create<AudioState>((set) => ({
   isPlaying: false,
   currentTime: 0,
   duration: 0,
-  volume: 80, // Default 80%
+  volume: 80,
   setFileName: (fileName) => set({ fileName }),
   setIsPlaying: (isPlaying) => set({ isPlaying }),
   setCurrentTime: (currentTime) => set({ currentTime }),

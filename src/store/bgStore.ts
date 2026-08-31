@@ -1,23 +1,37 @@
 import { create } from 'zustand';
 
-interface BgState {
+export interface BgState {
+  type: 'color' | 'image';
   src: string | null;
-  type: 'image' | 'video' | null;
-  effect: string;
+  color: string;
+  animation: string;
   dark: number;
   blur: number;
+  tint: number;
   tintColor: string;
-  tintAmount: number;
-  setField: (field: Partial<BgState>) => void;
+  setBg: (updates: Partial<BgState>) => void;
+  resetBg: () => void;
 }
 
 export const useBgStore = create<BgState>((set) => ({
+  type: 'color',
   src: null,
-  type: null,
-  effect: 'Normal',
+  color: '#0a0a0a',
+  animation: 'Tanpa anim',
   dark: 0,
   blur: 0,
+  tint: 0,
   tintColor: '#000000',
-  tintAmount: 0,
-  setField: (field) => set((state) => ({ ...state, ...field })),
+
+  setBg: (updates) => set((state) => ({ ...state, ...updates })),
+  resetBg: () => set({
+    type: 'color',
+    src: null,
+    color: '#0a0a0a',
+    animation: 'Tanpa anim',
+    dark: 0,
+    blur: 0,
+    tint: 0,
+    tintColor: '#000000',
+  }),
 }));

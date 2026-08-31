@@ -7,7 +7,6 @@ class AudioEngine {
   private sourceNode: AudioBufferSourceNode | null = null;
   private audioBuffer: AudioBuffer | null = null;
 
-  // Variabel untuk melacak waktu secara manual
   private startTime: number = 0;
   private pausedAt: number = 0;
   private isPlaying: boolean = false;
@@ -16,10 +15,9 @@ class AudioEngine {
   constructor() {
     this.audioCtx = new AudioContext();
     this.analyser = this.audioCtx.createAnalyser();
-    this.analyser.fftSize = 2048; // Resolusi FFT visualizer
+    this.analyser.fftSize = 2048;
     this.gainNode = this.audioCtx.createGain();
 
-    // Rantai audio: Source -> Analyser -> Volume (Gain) -> Speaker (Destination)
     this.analyser.connect(this.gainNode);
     this.gainNode.connect(this.audioCtx.destination);
   }
@@ -30,7 +28,6 @@ class AudioEngine {
     }
   }
 
-  // Menerima ArrayBuffer langsung dari Rust (memori murni)
   public async loadAudioBuffer(arrayBuffer: ArrayBuffer, fileName: string) {
     this.stopCurrent();
     this.pausedAt = 0;
@@ -38,7 +35,6 @@ class AudioEngine {
     useAudioStore.getState().setIsPlaying(false);
 
     try {
-      // Dekode byte data menjadi format audio yang dipahami Web Audio API
       this.audioBuffer = await this.audioCtx.decodeAudioData(arrayBuffer);
       useAudioStore.getState().setDuration(this.audioBuffer.duration);
       useAudioStore.getState().setFileName(fileName);
@@ -61,14 +57,11 @@ class AudioEngine {
     }
   }
 
-  // Loop manual (60fps) untuk mengupdate state progress bar
   private startLoop() {
     const loop = () => {
       if (this.isPlaying) {
-        // Rumus melacak currentTime saat menggunakan AudioBuffer
         const current = this.pausedAt + (this.audioCtx.currentTime - this.startTime);
         
-        // Deteksi lagu selesai
         if (this.audioBuffer && current >= this.audioBuffer.duration) {
           this.isPlaying = false;
           this.pausedAt = 0;
@@ -90,19 +83,17 @@ class AudioEngine {
     if (!this.audioBuffer) return;
 
     if (this.isPlaying) {
-      // Jeda (Pause)
       this.pausedAt += this.audioCtx.currentTime - this.startTime;
       this.isPlaying = false;
       useAudioStore.getState().setIsPlaying(false);
       this.stopCurrent();
     } else {
-      // Mulai (Play)
       this.sourceNode = this.audioCtx.createBufferSource();
       this.sourceNode.buffer = this.audioBuffer;
       this.sourceNode.connect(this.analyser);
       
       this.startTime = this.audioCtx.currentTime;
-      this.sourceNode.start(0, this.pausedAt); // Putar dari titik terakhir jeda
+      this.sourceNode.start(0, this.pausedAt);
       
       this.isPlaying = true;
       useAudioStore.getState().setIsPlaying(true);
@@ -121,7 +112,6 @@ class AudioEngine {
     this.pausedAt = time;
     useAudioStore.getState().setCurrentTime(time);
 
-    // Jika lagu sedang berputar, langsung putar lagi dari titik seek yang baru
     if (wasPlaying) {
       this.sourceNode = this.audioCtx.createBufferSource();
       this.sourceNode.buffer = this.audioBuffer;
@@ -147,6 +137,18 @@ class AudioEngine {
 
   public getAudioBuffer(): AudioBuffer | null {
     return this.audioBuffer;
+  }
+
+  public clearAudio() {
+    this.stopCurrent();
+    this.audioBuffer = null;
+    this.pausedAt = 0;
+    
+    useAudioStore.getState().setFileName(null);
+    useAudioStore.getState().setAudioPath(null);
+    useAudioStore.getState().setCurrentTime(0);
+    useAudioStore.getState().setDuration(0);
+    useAudioStore.getState().setIsPlaying(false);
   }
 }
 

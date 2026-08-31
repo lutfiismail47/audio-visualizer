@@ -8,6 +8,7 @@ class RendererEngine {
   private canvas2d: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null = null;
   private container: HTMLDivElement | null = null;
+  private resizeObserver: ResizeObserver | null = null;
   
   private barRenderer = new BarRenderer();
   private radialRenderer = new RadialRenderer();
@@ -35,19 +36,34 @@ class RendererEngine {
     this.container = container;
     container.appendChild(this.canvas2d);
     
-    // Setup dimensi asli (resolusi internal)
-    const rect = container.getBoundingClientRect();
-    this.canvas2d.width = rect.width;
-    this.canvas2d.height = rect.height;
+    const width = container.clientWidth || 800;
+    const height = container.clientHeight || 450;
+    this.canvas2d.width = width;
+    this.canvas2d.height = height;
 
-    // Init WebGL engine (akan ditumpuk di atas/bawah canvas 2d oleh ParticleRenderer)
-    await this.particleRenderer.init(container, rect.width, rect.height);
+    await this.particleRenderer.init(container, width, height);
+
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width: w, height: h } = entry.contentRect;
+        if (w > 0 && h > 0) {
+          this.canvas2d.width = w;
+          this.canvas2d.height = h;
+          this.particleRenderer.resize(w, h);
+        }
+      }
+    });
+    this.resizeObserver.observe(container);
 
     this.startLoop();
   }
 
   public unmount() {
     if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
     if (this.container && this.canvas2d.parentNode) {
       this.container.removeChild(this.canvas2d);
     }
@@ -72,13 +88,16 @@ class RendererEngine {
     
     const store = useVisualizerStore.getState();
     const data = audioEngine.getFrequencyData();
-    const width = this.canvas2d.width;
-    const height = this.canvas2d.height;
+    
+    const width = this.canvas2d.width || (this.container?.clientWidth ?? 0);
+    const height = this.canvas2d.height || (this.container?.clientHeight ?? 0);
 
-    // Bersihkan Canvas 2D SEKALI di awal frame
-    if (this.ctx) this.ctx.clearRect(0, 0, width, height);
+    if (width === 0 || height === 0) return;
 
-    // Kumpulkan layer tipe partikel untuk dilempar ke ParticleRenderer (PixiJS)
+    if (this.ctx) {
+      this.ctx.clearRect(0, 0, width, height);
+    }
+
     const particleLayers = store.layers.filter(l => l.preset?.config.primitive === 'particle');
     if (particleLayers.length > 0) {
       this.particleRenderer.setVisible(true);
@@ -87,25 +106,27 @@ class RendererEngine {
       this.particleRenderer.setVisible(false);
     }
 
-    // Looping semua layer untuk menggambar visual 2D secara berurutan
     store.layers.forEach(layer => {
       if (!layer.preset || !this.ctx) return;
       const config = layer.preset.config;
 
-      if (config.primitive === 'bar') {
-        this.barRenderer.render(this.ctx, data, config, width, height, layer.size, layer.position);
-      } else if (config.primitive === 'radial') {
-        this.radialRenderer.render(this.ctx, data, config, width, height, layer.size, layer.position);
+      try {
+        if (config.primitive === 'bar') {
+          this.barRenderer.render(this.ctx, data, config, width, height, layer.size, layer.position);
+        } else if (config.primitive === 'radial') {
+          this.radialRenderer.render(this.ctx, data, config, width, height, layer.size, layer.position);
+        }
+      } catch (err) {
+        console.error("Gagal merender layer visualizer:", err);
       }
     });
 
-    // --- ADAPTIVE FPS LOGIC UNTUK PC LEMAH ---
+    // Adaptive FPS
     const t1 = performance.now();
     this.frameTimes.push(t1 - t0);
     if (this.frameTimes.length > 30) {
       const avg = this.frameTimes.reduce((a, b) => a + b, 0) / 30;
       if (avg > 16 && this.targetFps === 60) {
-        console.warn("Frame lambat, menurunkan ke 30fps...");
         this.targetFps = 30;
         this.fpsInterval = 1000 / 30;
       } else if (avg < 8 && this.targetFps === 30) {

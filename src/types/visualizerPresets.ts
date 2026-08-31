@@ -10,6 +10,12 @@ export interface VisualizerConfig {
   sensitivity: number;
   particleCount?: number;
   spinSpeed?: number;
+  shape?: 'dust' | 'smoke' | 'snow';
+  radialMode?: 'bars' | 'concentric';
+  hasPeaks?: boolean;
+  isOutline?: boolean;
+  rounded?: boolean;
+  gradientDir?: 'horizontal' | 'vertical';
 }
 
 export interface VisualizerPreset {
@@ -19,7 +25,6 @@ export interface VisualizerPreset {
   config: VisualizerConfig;
 }
 
-// Saya implementasikan 6 preset dulu sesuai permintaan untuk mewakili tiap primitive
 export const visualizerPresets: VisualizerPreset[] = [
   { 
     id: 'bars-round', name: 'Bars Round', category: 'Style',
@@ -44,5 +49,29 @@ export const visualizerPresets: VisualizerPreset[] = [
   { 
     id: 'dust', name: 'Bintik (Dust)', category: 'Particle',
     config: { primitive: 'particle', colors: ['#f59e0b'], mirror: false, glow: true, glowIntensity: 5, sensitivity: 2.0, particleCount: 100 }
+  },
+  {
+    id: 'ripple-waves', name: 'Ripple Waves', category: 'Style',
+    config: { primitive: 'radial', radialMode: 'concentric', colors: ['#a855f7'], mirror: false, glow: true, glowIntensity: 15, sensitivity: 1.5 }
+  },
+  {
+    id: 'smoke', name: 'Asap (Smoke)', category: 'Particle',
+    config: { primitive: 'particle', shape: 'smoke', colors: ['#ffffff'], mirror: false, glow: false, glowIntensity: 0, sensitivity: 2.5, particleCount: 40 }
+  },
+  {
+    id: 'snow', name: 'Salju (Snow)', category: 'Particle',
+    config: { primitive: 'particle', shape: 'snow', colors: ['#ffffff', '#38bdf8'], mirror: false, glow: true, glowIntensity: 5, sensitivity: 1.0, particleCount: 150 }
+  },
+  {
+    id: 'octave-bars', name: 'Octave Bars', category: 'Style',
+    config: { primitive: 'bar', colors: ['#22c55e', '#eab308', '#ef4444'], mirror: false, glow: false, glowIntensity: 0, sensitivity: 1.5, hasPeaks: true, rounded: true, gradientDir: 'vertical' }
+  },
+  {
+    id: 'outline-bars', name: 'Outline', category: 'Style',
+    config: { primitive: 'bar', colors: ['#ec4899', '#eab308', '#22c55e', '#06b6d4', '#3b82f6'], mirror: false, glow: false, glowIntensity: 0, sensitivity: 1.5, hasPeaks: true, isOutline: true, gradientDir: 'horizontal' }
+  },
+  {
+    id: 'radial-peaks', name: 'Radial Peaks', category: 'Style',
+    config: { primitive: 'radial', colors: ['#ec4899', '#eab308', '#22c55e', '#06b6d4', '#3b82f6'], mirror: false, glow: false, glowIntensity: 0, sensitivity: 1.2, hasPeaks: true }
   }
 ];

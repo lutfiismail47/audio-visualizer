@@ -1,5 +1,5 @@
 [package]
-name = "music-video-maker"
+name = "audio-visualizer"
 version = "0.1.0"
 description = "A Tauri App"
 authors = ["you"]

@@ -3,6 +3,7 @@ import { Navbar } from './components/navbar/Navbar';
 import { LeftPanel } from './components/panels/LeftPanel';
 import { PreviewArea } from './components/preview/PreviewArea';
 import { useExportStore } from './store/exportStore';
+import { cancelExportVideo } from './engine/export/exportEngine';
 
 function App() {
   const { isExporting, progress, statusText } = useExportStore();
@@ -29,6 +30,11 @@ function App() {
               />
             </div>
             <span className="text-accent font-bold">{progress}%</span>
+            <button 
+              onClick={cancelExportVideo}
+              className="mt-6 px-6 py-1.5 bg-red-900/30 text-red-400 border border-red-900 rounded hover:bg-red-900/50 text-sm">
+                Batal
+            </button>
           </div>
         </div>
       )}

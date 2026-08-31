@@ -5,8 +5,12 @@ import { readFile } from '@tauri-apps/plugin-fs';
 import { audioEngine } from '../../engine/audio/audioEngine';
 import { exportVideo } from '../../engine/export/exportEngine';
 import { useAudioStore } from '../../store/audioStore';
+import { useBgStore } from '../../store/bgStore';
+import { useProjectStore } from '../../store/projectStore';
 
-export const Navbar: React.FC = () => {const handleLoadAudio = async () => {
+export const Navbar: React.FC = () => {
+  const { projectName, setProjectName } = useProjectStore();
+  const handleLoadAudio = async () => {
     try {
       const selected = await open({
         multiple: false,
@@ -14,18 +18,51 @@ export const Navbar: React.FC = () => {const handleLoadAudio = async () => {
       });
       
       if (typeof selected === 'string') {
-        // 2. Baca file langsung menjadi Uint8Array tanpa IPC JSON
+        audioEngine.clearAudio();
         const uint8Array = await readFile(selected);
         const fileName = selected.split(/[/\\]/).pop() || 'Unknown';
         
         useAudioStore.getState().setAudioPath(selected);
         
-        // 3. Masukkan buffernya ke audio engine
         await audioEngine.loadAudioBuffer(uint8Array.buffer, fileName);
       }
     } catch (err) {
       console.error("Gagal load audio:", err);
     }
+  };
+
+  const handleRemoveAudio = () => {
+    audioEngine.clearAudio();
+  };
+
+  const handleLoadBg = async () => {
+    try {
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'] }]
+      });
+      
+      if (typeof selected === 'string') {
+        const uint8Array = await readFile(selected);
+        const ext = selected.split('.').pop()?.toLowerCase();
+        
+        let mimeType = 'image/jpeg';
+        if (ext === 'png') mimeType = 'image/png';
+        else if (ext === 'webp') mimeType = 'image/webp';
+        else if (ext === 'gif') mimeType = 'image/gif';
+        
+        const blob = new Blob([uint8Array], { type: mimeType });
+        const blobUrl = URL.createObjectURL(blob);
+        
+        useBgStore.getState().setField({ src: blobUrl, type: 'image' });
+      }
+    } catch (err) {
+      console.error("Gagal load background:", err);
+    }
+  };
+
+  const handleRemoveBg = () => {
+    useBgStore.getState().setField({ src: null, type: null });
   };
 
   return (
@@ -37,29 +74,29 @@ export const Navbar: React.FC = () => {const handleLoadAudio = async () => {
         <div className="h-6 w-px bg-gray-800 mx-2"></div>
         <input 
           type="text" 
-          defaultValue="Percobaan 1" 
+          value={projectName} 
+          onChange={(e) => setProjectName(e.target.value)}
           className="bg-transparent border border-transparent hover:border-gray-800 rounded px-2 py-1 text-sm text-gray-200 focus:outline-none focus:border-accent"
         />
-        <span className="text-xs text-gray-500">Proyek "Percobaan 1" dibuka · audio OK</span>
       </div>
 
       <div className="flex items-center gap-3">
         <div className="flex gap-1 bg-panel p-1 rounded-md border border-gray-800">
-          <Button active onClick={handleLoadAudio}>Audio</Button>
-          <Button>Hapus Audio</Button>
+          <Button active onClick={handleLoadAudio}>+ Audio</Button>
+          <Button onClick={handleRemoveAudio}>Remove Audio</Button>
         </div>
         <div className="flex gap-1 bg-panel p-1 rounded-md border border-gray-800">
-          <Button active>BG</Button>
-          <Button>Hapus BG</Button>
+          <Button active onClick={handleLoadBg}>+ BG</Button>
+          <Button onClick={handleRemoveBg}>Remove BG</Button>
         </div>
-        <Button>Full</Button>
+
         <select 
-            id="res-select"
-            className="bg-panel border border-gray-800 rounded px-2 py-1 text-sm text-gray-300"
-          >
-            <option value="1080">1080p</option>
-            <option value="720">720p</option>
-          </select>
+          id="res-select"
+          className="bg-gray-900 border border-gray-800 rounded px-2 py-1 text-sm text-gray-200 focus:outline-none focus:border-accent cursor-pointer"
+        >
+          <option value="1080" className="bg-gray-900 text-gray-200">1080p</option>
+          <option value="720" className="bg-gray-900 text-gray-200">720p</option>
+        </select>
           <Button 
             className="bg-red-900/30 text-red-400 border-red-900 hover:bg-red-900/50"
             onClick={() => {
@@ -67,7 +104,7 @@ export const Navbar: React.FC = () => {const handleLoadAudio = async () => {
               exportVideo(res);
             }}
           >
-            Rekam
+            Export
           </Button>
       </div>
     </nav>

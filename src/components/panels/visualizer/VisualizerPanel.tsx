@@ -6,7 +6,6 @@ import { useVisualizerStore } from '../../../store/visualizerStore';
 export const VisualizerPanel: React.FC = () => {
   const { layers, activeLayerId, addLayer, removeLayer, setActiveLayerId, updateActiveLayer } = useVisualizerStore();
 
-  // Mencari data layer yang sedang aktif diedit
   const activeLayer = layers.find(l => l.id === activeLayerId);
 
   return (
@@ -57,10 +56,6 @@ export const VisualizerPanel: React.FC = () => {
           </div>
           
           <div className="mt-4">
-            <input 
-              type="text" placeholder="Pilih visual..." 
-              className="w-full bg-background border border-gray-800 rounded px-3 py-2 text-sm mb-3 focus:outline-none focus:border-accent"
-            />
             <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
               {visualizerPresets.map(preset => (
                 <Button 

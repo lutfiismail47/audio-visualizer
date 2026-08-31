@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { VisualizerPreset, PositionMode, visualizerPresets } from '../types/visualizerPresets';
 
-// Mendefinisikan struktur untuk satu lapisan visualizer
 export interface VisualizerLayer {
   id: string;
   preset: VisualizerPreset | null;
@@ -19,14 +18,14 @@ interface VisualizerState {
 }
 
 export const useVisualizerStore = create<VisualizerState>((set) => ({
-  layers: [{ id: 'layer-1', preset: visualizerPresets[0], position: 'bottom', size: 75 }], // Layer default awal
+  layers: [{ id: 'layer-1', preset: visualizerPresets[0], position: 'bottom', size: 75 }],
   activeLayerId: 'layer-1',
   
   addLayer: () => set((state) => {
     const newId = `layer-${Date.now()}`;
     return {
       layers: [...state.layers, { id: newId, preset: null, position: 'bottom', size: 75 }],
-      activeLayerId: newId // Otomatis fokus ke layer baru
+      activeLayerId: newId
     };
   }),
 
