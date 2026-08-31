@@ -5,7 +5,7 @@ export interface OverlayData {
   src: string | null;
   type: 'image' | 'video' | null;
   layer: 'Depan Viz' | 'Belakang Viz';
-  blend: string;
+  blend: 'Normal' | 'Hapus hitam' | 'Hapus hijau';
   size: number;
   opacity: number;
   speed: number;

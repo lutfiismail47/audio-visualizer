@@ -110,6 +110,9 @@ class RendererEngine {
       if (!layer.preset || !this.ctx) return;
       const config = layer.preset.config;
 
+      this.ctx.save();
+      this.ctx.translate(layer.x || 0, layer.y || 0);
+
       try {
         if (config.primitive === 'bar') {
           this.barRenderer.render(this.ctx, data, config, width, height, layer.size, layer.position);
@@ -119,6 +122,8 @@ class RendererEngine {
       } catch (err) {
         console.error("Gagal merender layer visualizer:", err);
       }
+
+      this.ctx.restore();
     });
 
     // Adaptive FPS

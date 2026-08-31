@@ -6,11 +6,16 @@ import { rendererEngine } from '../../engine/renderer/RendererEngine';
 import { BackgroundLayer } from '../../engine/layers/BackgroundLayer';
 import { OverlayLayer } from '../../engine/layers/OverlayLayer';
 import { TextLayer } from '../../engine/layers/TextLayer';
+import { useVisualizerStore } from '../../store/visualizerStore';
 
 export const PreviewArea: React.FC = () => {
   const { isPlaying, currentTime, duration, fileName, volume } = useAudioStore();
+  const { layers, activeLayerId, updateActiveLayer } = useVisualizerStore();
   const vizContainerRef = useRef<HTMLDivElement>(null);
   const screenAreaRef = useRef<HTMLDivElement>(null);
+
+  const activeLayer = layers.find(l => l.id === activeLayerId);
+  const dragRef = useRef({ isDragging: false, startX: 0, startY: 0, initialX: 0, initialY: 0 });
 
   useEffect(() => {
     if (vizContainerRef.current) rendererEngine.mount(vizContainerRef.current);
@@ -56,20 +61,59 @@ export const PreviewArea: React.FC = () => {
     return () => cancelAnimationFrame(animId);
   }, []);
 
+  // Handler Drag Visualizer
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!activeLayer) return;
+    dragRef.current.isDragging = true;
+    dragRef.current.startX = e.clientX;
+    dragRef.current.startY = e.clientY;
+    dragRef.current.initialX = activeLayer.x || 0;
+    dragRef.current.initialY = activeLayer.y || 0;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current.isDragging || !activeLayer) return;
+    const deltaX = e.clientX - dragRef.current.startX;
+    const deltaY = e.clientY - dragRef.current.startY;
+    updateActiveLayer({ 
+      x: dragRef.current.initialX + deltaX, 
+      y: dragRef.current.initialY + deltaY 
+    });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    dragRef.current.isDragging = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+
   const handlePlayPause = () => audioEngine.togglePlay();
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => audioEngine.seek(Number(e.target.value));
   const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => audioEngine.setVolume(Number(e.target.value));
 
   return (
     <div className="flex-1 flex flex-col bg-background p-4 h-full">
-      {/* 16:9 Screen (Layering Area) dengan ref screenAreaRef */}
+      {/* 16:9 Screen (Layering Area) */}
       <div 
         ref={screenAreaRef}
         className="flex-1 w-full bg-black rounded-xl border border-gray-800 relative overflow-hidden shadow-2xl"
       >
         <BackgroundLayer />
         <OverlayLayer position="Belakang Viz" />
+        
+        {/* Layer 2: Visualizer (Canvas) */}
         <div ref={vizContainerRef} className="absolute inset-0 z-20 pointer-events-none" />
+
+        {/* Drag Handle Layer untuk Visualizer */}
+        <div 
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          className="absolute inset-0 z-25 cursor-move"
+          style={{ pointerEvents: activeLayer ? 'auto' : 'none' }}
+        />
+
         <OverlayLayer position="Depan Viz" />
         <TextLayer />
       </div>

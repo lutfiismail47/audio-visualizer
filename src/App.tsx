@@ -4,9 +4,38 @@ import { LeftPanel } from './components/panels/LeftPanel';
 import { PreviewArea } from './components/preview/PreviewArea';
 import { useExportStore } from './store/exportStore';
 import { cancelExportVideo } from './engine/export/exportEngine';
+import { useEffect } from 'react';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { ask } from '@tauri-apps/plugin-dialog';
 
 function App() {
   const { isExporting, progress, statusText } = useExportStore();
+
+  useEffect(() => {
+    const appWindow = getCurrentWindow();
+
+    const unlistenPromise = appWindow.onCloseRequested(async (event) => {
+      const shouldClose = await ask(
+        'Apakah Anda yakin ingin keluar dari aplikasi? Perubahan yang belum disimpan mungkin akan hilang.',
+        {
+          title: 'Konfirmasi Keluar',
+          kind: 'warning',
+          okLabel: 'Keluar',
+          cancelLabel: 'Batal'
+        }
+      );
+
+      if (!shouldClose) {
+        event.preventDefault();
+      } else {
+        await appWindow.destroy();
+      }
+    });
+
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, []);
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-background relative">

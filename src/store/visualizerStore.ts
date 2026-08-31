@@ -6,6 +6,8 @@ export interface VisualizerLayer {
   preset: VisualizerPreset | null;
   position: PositionMode;
   size: number;
+  x: number;
+  y: number;
 }
 
 interface VisualizerState {
@@ -18,13 +20,13 @@ interface VisualizerState {
 }
 
 export const useVisualizerStore = create<VisualizerState>((set) => ({
-  layers: [{ id: 'layer-1', preset: visualizerPresets[0], position: 'bottom', size: 75 }],
+  layers: [{ id: 'layer-1', preset: visualizerPresets[0], position: 'bottom', size: 75, x: 0, y: 0 }],
   activeLayerId: 'layer-1',
   
   addLayer: () => set((state) => {
     const newId = `layer-${Date.now()}`;
     return {
-      layers: [...state.layers, { id: newId, preset: null, position: 'bottom', size: 75 }],
+      layers: [...state.layers, { id: newId, preset: null, position: 'bottom', size: 75, x: 0, y: 0 }],
       activeLayerId: newId
     };
   }),

@@ -9,10 +9,37 @@ export const OverlayLayer: React.FC<Props> = ({ position }) => {
   const { overlays, updateOverlay, setActiveOverlayId } = useOverlayStore();
   const visibleOverlays = overlays.filter(o => o.layer === position && o.src);
 
-  if (visibleOverlays.length === 0) return null;
-
   return (
     <>
+      {/* Definisi Filter SVG untuk Hapus Hijau & Hapus Hitam */}
+      <svg className="hidden" aria-hidden="true">
+        <defs>
+          {/* Filter Green Screen */}
+          <filter id="chroma-key-green">
+            <feColorMatrix
+              type="matrix"
+              values="
+                1  0  0  0  0
+                0  1  0  0  0
+                0  0  1  0  0
+                1 -2  1  1  0"
+            />
+          </filter>
+
+          {/* Filter Black Screen (Menghapus warna gelap/hitam secara mutlak) */}
+          <filter id="chroma-key-black">
+            <feColorMatrix
+              type="matrix"
+              values="
+                1  0  0  0  0
+                0  1  0  0  0
+                0  0  1  0  0
+                3  3  3  0 -0.5" 
+            />
+          </filter>
+        </defs>
+      </svg>
+
       {visibleOverlays.map(overlay => (
         <DraggableOverlay 
           key={overlay.id} 
@@ -29,7 +56,6 @@ export const OverlayLayer: React.FC<Props> = ({ position }) => {
 const DraggableOverlay = ({ overlay, position, updateOverlay, setActiveOverlayId }: { overlay: OverlayData; position: string; updateOverlay: any; setActiveOverlayId: any }) => {
   const dragRef = useRef({ isDragging: false, startX: 0, startY: 0, initialX: 0, initialY: 0 });
 
-  const isScreen = overlay.blend === 'Hapus hitam';
   let animClass = '';
   let baseDuration = 2;
 
@@ -47,9 +73,7 @@ const DraggableOverlay = ({ overlay, position, updateOverlay, setActiveOverlayId
 
   const multiplier = (101 - overlay.speed) / 50;
   const isBeatAnim = ['Denyut', 'Zoom', 'Shake', 'Pan', 'Flash', 'Blitz'].includes(overlay.animation);
-  const animDuration = overlay.animation === 'Tanpa anim' || isBeatAnim 
-    ? undefined 
-    : `${baseDuration * multiplier}s`;
+  const animDuration = overlay.animation === 'Tanpa anim' || isBeatAnim ? undefined : `${baseDuration * multiplier}s`;
 
   const handlePointerDown = (e: React.PointerEvent) => {
     setActiveOverlayId(overlay.id);
@@ -73,24 +97,60 @@ const DraggableOverlay = ({ overlay, position, updateOverlay, setActiveOverlayId
     e.currentTarget.releasePointerCapture(e.pointerId);
   };
 
+  // Penentuan Filter Berdasarkan Mode Blend
+  const getFilterStyle = () => {
+    if (overlay.blend === 'Hapus hitam') {
+      return 'url(#chroma-key-black)';
+    }
+    if (overlay.blend === 'Hapus hijau') {
+      return 'url(#chroma-key-green)';
+    }
+    return undefined;
+  };
+
   return (
     <div 
       className="absolute inset-0 flex items-center justify-center pointer-events-none"
-      style={{ zIndex: position === 'Depan Viz' ? 30 : 10, mixBlendMode: isScreen ? 'screen' : 'normal', opacity: overlay.opacity / 100 }}
+      style={{ 
+        zIndex: position === 'Depan Viz' ? 30 : 10,
+        opacity: overlay.opacity / 100 
+      }}
     >
       <div
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        style={{ transform: `translate(${overlay.x}px, ${overlay.y}px)`, pointerEvents: 'auto', width: `${overlay.size}%`, height: `${overlay.size}%` }}
+        style={{ 
+          transform: `translate(${overlay.x}px, ${overlay.y}px)`, 
+          pointerEvents: 'auto', 
+          width: `${overlay.size}%`, 
+          height: `${overlay.size}%` 
+        }}
         className="cursor-grab active:cursor-grabbing flex items-center justify-center"
       >
-        <div className={`${animClass} w-full h-full`} style={{ animationDuration: animDuration }}>
+        <div 
+          className={`${animClass} w-full h-full flex items-center justify-center`} 
+          style={{ 
+            animationDuration: animDuration,
+            filter: getFilterStyle()
+          }}
+        >
           {overlay.type === 'video' ? (
-            <video src={overlay.src!} autoPlay loop muted className="w-full h-full object-contain pointer-events-none" />
+            <video 
+              src={overlay.src!} 
+              autoPlay 
+              loop 
+              muted 
+              playsInline
+              className="w-full h-full object-contain pointer-events-none" 
+            />
           ) : (
-            <img src={overlay.src!} className="w-full h-full object-contain pointer-events-none" />
+            <img 
+              src={overlay.src!} 
+              alt="Overlay"
+              className="w-full h-full object-contain pointer-events-none" 
+            />
           )}
         </div>
       </div>

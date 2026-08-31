@@ -85,10 +85,6 @@ export const Navbar: React.FC = () => {
           <Button active onClick={handleLoadAudio}>+ Audio</Button>
           <Button onClick={handleRemoveAudio}>Remove Audio</Button>
         </div>
-        <div className="flex gap-1 bg-panel p-1 rounded-md border border-gray-800">
-          <Button active onClick={handleLoadBg}>+ BG</Button>
-          <Button onClick={handleRemoveBg}>Remove BG</Button>
-        </div>
 
         <select 
           id="res-select"

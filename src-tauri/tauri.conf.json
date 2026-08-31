@@ -12,9 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "audio-visualizer",
-        "width": 800,
-        "height": 600
+        "title": "VIZ MAKER",
+        "width": 1280,
+        "height": 720,
+        "resizable": true,
+        "fullscreen": false
       }
     ],
     "security": {

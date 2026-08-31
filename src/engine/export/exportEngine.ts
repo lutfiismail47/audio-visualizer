@@ -119,11 +119,17 @@ export const exportVideo = async (resolution: 720 | 1080) => {
       vizStore.layers.forEach(layer => {
         if (!layer.preset) return;
         const config = layer.preset.config;
+
+        ctx.save();
+        ctx.translate(layer.x || 0, layer.y || 0);
+
         if (config.primitive === 'bar') {
           barRenderer.render(ctx, dataArray, config, width, height, layer.size, layer.position);
         } else if (config.primitive === 'radial') {
           radialRenderer.render(ctx, dataArray, config, width, height, layer.size, layer.position);
         }
+
+        ctx.restore();
       });
 
       textStoreData.texts.forEach(t => {

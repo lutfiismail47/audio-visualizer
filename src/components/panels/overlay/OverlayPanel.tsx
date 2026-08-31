@@ -41,7 +41,7 @@ export const OverlayPanel: React.FC = () => {
   };
 
   const layersOpt = ['Depan Viz', 'Belakang Viz'];
-  const blendsOpt = ['Hapus hitam', 'Normal'];
+  const blendsOpt = ['Hapus hitam', 'Hapus hijau', 'Normal'];
   const animsOpt = ['Tanpa anim', 'Pan', 'Denyut', 'Blitz', 'Flash', 'Float', 'Shake', 'Zoom', 'Putar searah jarum jam', 'Putar kebalikan arah jarum jam'];
 
   return (
