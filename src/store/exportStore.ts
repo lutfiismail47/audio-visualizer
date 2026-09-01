@@ -2,14 +2,26 @@ import { create } from 'zustand';
 
 interface ExportState {
   isExporting: boolean;
+  isComplete: boolean;
+  errorText: string | null;
   progress: number;
   statusText: string;
   setExportState: (state: Partial<ExportState>) => void;
+  resetExportState: () => void;
 }
 
 export const useExportStore = create<ExportState>((set) => ({
   isExporting: false,
+  isComplete: false,
+  errorText: null,
   progress: 0,
   statusText: '',
   setExportState: (state) => set((prev) => ({ ...prev, ...state })),
+  resetExportState: () => set({
+    isExporting: false,
+    isComplete: false,
+    errorText: null,
+    progress: 0,
+    statusText: '',
+  }),
 }));

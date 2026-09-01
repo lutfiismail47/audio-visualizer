@@ -3,7 +3,12 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_shell::process::CommandChild;
 use tauri_plugin_shell::ShellExt;
 
-struct ExportProcess(Mutex<Option<CommandChild>>);
+struct ExportStateInternal {
+    child: Option<CommandChild>,
+    output_path: Option<String>,
+}
+
+struct ExportProcess(Mutex<ExportStateInternal>);
 
 #[tauri::command]
 async fn start_export(
@@ -15,6 +20,13 @@ async fn start_export(
     audio_path: String,
     output_path: String,
 ) -> Result<(), String> {
+    let export_process = app.state::<ExportProcess>();
+    let mut state = export_process.0.lock().unwrap();
+
+    if state.child.is_some() {
+        return Err("Export lain sedang berjalan!".into());
+    }
+
     let shell = app.shell();
     let cmd = shell.sidecar("ffmpeg").map_err(|e| e.to_string())?.args([
         "-y",
@@ -49,16 +61,21 @@ async fn start_export(
     ]);
 
     let (_rx, child) = cmd.spawn().map_err(|e| e.to_string())?;
-    *app.state::<ExportProcess>().0.lock().unwrap() = Some(child);
+    state.child = Some(child);
+    state.output_path = Some(output_path);
     Ok(())
 }
 
 #[tauri::command]
-async fn push_frame(app: AppHandle, frame: Vec<u8>) -> Result<(), String> {
+async fn push_frame(app: AppHandle, request: tauri::ipc::Request<'_>) -> Result<(), String> {
+    let tauri::ipc::InvokeBody::Raw(frame) = request.body() else {
+        return Err("Expected raw binary body".into());
+    };
+
     let export_process = app.state::<ExportProcess>();
     let mut state = export_process.0.lock().unwrap();
-    if let Some(child) = state.as_mut() {
-        child.write(&frame).map_err(|e| e.to_string())?;
+    if let Some(child) = state.child.as_mut() {
+        child.write(frame).map_err(|e| e.to_string())?;
     }
     Ok(())
 }
@@ -67,7 +84,8 @@ async fn push_frame(app: AppHandle, frame: Vec<u8>) -> Result<(), String> {
 async fn finish_export(app: AppHandle) -> Result<(), String> {
     let export_process = app.state::<ExportProcess>();
     let mut state = export_process.0.lock().unwrap();
-    let _ = state.take();
+    state.output_path = None;
+    let _ = state.child.take();
     Ok(())
 }
 
@@ -75,10 +93,28 @@ async fn finish_export(app: AppHandle) -> Result<(), String> {
 async fn cancel_export(app: AppHandle) -> Result<(), String> {
     let export_process = app.state::<ExportProcess>();
     let mut state = export_process.0.lock().unwrap();
-    if let Some(child) = state.take() {
-        let _ = child.kill(); 
+    
+    let path_to_clean = state.output_path.take();
+
+    if let Some(child) = state.child.take() {
+        let _ = child.kill();
     }
+
+    if let Some(path) = path_to_clean {
+        let _ = std::fs::remove_file(path);
+    }
+
     Ok(())
+}
+
+#[tauri::command]
+fn read_local_file(path: String) -> Result<Vec<u8>, String> {
+    std::fs::read(path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn exit_app() {
+    std::process::exit(0);
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -87,19 +123,18 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
-        .manage(ExportProcess(Mutex::new(None)))
+        .manage(ExportProcess(Mutex::new(ExportStateInternal {
+            child: None,
+            output_path: None,
+        })))
         .invoke_handler(tauri::generate_handler![
             read_local_file,
             start_export,
             push_frame,
             finish_export,
-            cancel_export
+            cancel_export,
+            exit_app
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-#[tauri::command]
-fn read_local_file(path: String) -> Result<Vec<u8>, String> {
-    std::fs::read(path).map_err(|e| e.to_string())
 }

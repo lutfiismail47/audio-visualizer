@@ -1,5 +1,4 @@
 import { Application, Graphics } from 'pixi.js';
-import { VisualizerConfig } from '../../types/visualizerPresets';
 
 interface Particle {
   sprite: Graphics;
@@ -18,12 +17,12 @@ export class ParticleRenderer {
   
   private particleGroups: Map<string, Particle[]> = new Map();
 
-  public async init(container: HTMLDivElement, width: number, height: number) {
+  public async init(container: HTMLDivElement | null, width: number, height: number) {
     if (this.isInitialized) return;
     this.app = new Application();
-    
     await this.app.init({ width, height, backgroundAlpha: 0, antialias: true });
-    if (this.app.canvas) {
+    
+    if (this.app.canvas && container) {
       this.app.canvas.style.position = 'absolute';
       this.app.canvas.style.top = '0';
       this.app.canvas.style.left = '0';
@@ -31,6 +30,22 @@ export class ParticleRenderer {
       container.appendChild(this.app.canvas);
     }
     this.isInitialized = true;
+  }
+
+  public getCanvas(): HTMLCanvasElement | null {
+    return (this.app?.canvas as HTMLCanvasElement) ?? null;
+  }
+
+  public destroy() {
+    if (this.app) {
+      try {
+        this.app.destroy(true, { children: true, texture: true });
+      } catch (e) {
+        console.warn('Gagal membersihkan instance Pixi:', e);
+      }
+      this.app = null;
+      this.isInitialized = false;
+    }
   }
 
   public render(data: Uint8Array, layers: any[], width: number, height: number) {
@@ -129,19 +144,6 @@ export class ParticleRenderer {
   public resize(width: number, height: number) {
     if (this.app && this.app.renderer) {
       this.app.renderer.resize(width, height);
-    }
-  }
-
-  public destroy() {
-    if (this.app) {
-      try {
-        this.app.destroy(true, { children: true, texture: true, baseTexture: true });
-      } catch (error) {
-        console.warn("PixiJS destroy terinterupsi:", error);
-      }
-      this.app = null;
-      this.isInitialized = false;
-      this.particleGroups.clear();
     }
   }
 }

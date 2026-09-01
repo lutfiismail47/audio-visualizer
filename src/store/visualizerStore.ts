@@ -26,7 +26,17 @@ export const useVisualizerStore = create<VisualizerState>((set) => ({
   addLayer: () => set((state) => {
     const newId = `layer-${Date.now()}`;
     return {
-      layers: [...state.layers, { id: newId, preset: null, position: 'bottom', size: 75, x: 0, y: 0 }],
+      layers: [
+        ...state.layers, 
+        { 
+          id: newId, 
+          preset: visualizerPresets[0],
+          position: 'bottom', 
+          size: 75, 
+          x: 0, 
+          y: 0 
+        }
+      ],
       activeLayerId: newId
     };
   }),

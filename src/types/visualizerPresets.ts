@@ -36,7 +36,7 @@ export const visualizerPresets: VisualizerPreset[] = [
   },
   { 
     id: 'bars-neon', name: 'Bars Neon', category: 'Style',
-    config: { primitive: 'bar', colors: ['#a855f7', '#ec4899'], mirror: true, glow: true, glowIntensity: 15, sensitivity: 1.5 }
+    config: { primitive: 'bar', colors: ['#a855f7', '#ec4899'], mirror: true, glow: true, glowIntensity: 15, sensitivity: 1.0 }
   },
   { 
     id: 'radial', name: 'Radial', category: 'Style',
@@ -47,20 +47,20 @@ export const visualizerPresets: VisualizerPreset[] = [
     config: { primitive: 'radial', colors: ['#10b981', '#3b82f6'], mirror: true, glow: true, glowIntensity: 10, sensitivity: 1.2, spinSpeed: 0.005 }
   },
   { 
-    id: 'dust', name: 'Bintik (Dust)', category: 'Particle',
-    config: { primitive: 'particle', colors: ['#f59e0b'], mirror: false, glow: true, glowIntensity: 5, sensitivity: 2.0, particleCount: 100 }
+    id: 'dust', name: 'Dust', category: 'Particle',
+    config: { primitive: 'particle', colors: ['#f4cd89'], mirror: false, glow: true, glowIntensity: 5, sensitivity: 2.0, particleCount: 100 }
   },
   {
     id: 'ripple-waves', name: 'Ripple Waves', category: 'Style',
     config: { primitive: 'radial', radialMode: 'concentric', colors: ['#a855f7'], mirror: false, glow: true, glowIntensity: 15, sensitivity: 1.5 }
   },
   {
-    id: 'smoke', name: 'Asap (Smoke)', category: 'Particle',
+    id: 'smoke', name: 'Smoke', category: 'Particle',
     config: { primitive: 'particle', shape: 'smoke', colors: ['#ffffff'], mirror: false, glow: false, glowIntensity: 0, sensitivity: 2.5, particleCount: 40 }
   },
   {
-    id: 'snow', name: 'Salju (Snow)', category: 'Particle',
-    config: { primitive: 'particle', shape: 'snow', colors: ['#ffffff', '#38bdf8'], mirror: false, glow: true, glowIntensity: 5, sensitivity: 1.0, particleCount: 150 }
+    id: 'snow', name: 'Snow', category: 'Particle',
+    config: { primitive: 'particle', shape: 'snow', colors: ['#ffffff', '#b9e8fc'], mirror: false, glow: true, glowIntensity: 5, sensitivity: 1.0, particleCount: 150 }
   },
   {
     id: 'octave-bars', name: 'Octave Bars', category: 'Style',

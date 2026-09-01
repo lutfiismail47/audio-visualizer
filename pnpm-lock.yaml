@@ -23,6 +23,9 @@ importers:
       '@tauri-apps/plugin-shell':
         specifier: ~2.3.5
         version: 2.3.5
+      gifuct-js:
+        specifier: ^2.1.2
+        version: 2.1.2
       pixi.js:
         specifier: ^8.19.0
         version: 8.19.0
