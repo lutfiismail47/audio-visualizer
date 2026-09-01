@@ -5,7 +5,6 @@ import { readFile } from '@tauri-apps/plugin-fs';
 import { audioEngine } from '../../engine/audio/audioEngine';
 import { exportVideo } from '../../engine/export/exportEngine';
 import { useAudioStore } from '../../store/audioStore';
-import { useBgStore } from '../../store/bgStore';
 import { useProjectStore } from '../../store/projectStore';
 
 export const Navbar: React.FC = () => {
@@ -33,36 +32,6 @@ export const Navbar: React.FC = () => {
 
   const handleRemoveAudio = () => {
     audioEngine.clearAudio();
-  };
-
-  const handleLoadBg = async () => {
-    try {
-      const selected = await open({
-        multiple: false,
-        filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'] }]
-      });
-      
-      if (typeof selected === 'string') {
-        const uint8Array = await readFile(selected);
-        const ext = selected.split('.').pop()?.toLowerCase();
-        
-        let mimeType = 'image/jpeg';
-        if (ext === 'png') mimeType = 'image/png';
-        else if (ext === 'webp') mimeType = 'image/webp';
-        else if (ext === 'gif') mimeType = 'image/gif';
-        
-        const blob = new Blob([uint8Array], { type: mimeType });
-        const blobUrl = URL.createObjectURL(blob);
-        
-        useBgStore.getState().setField({ src: blobUrl, type: 'image' });
-      }
-    } catch (err) {
-      console.error("Gagal load background:", err);
-    }
-  };
-
-  const handleRemoveBg = () => {
-    useBgStore.getState().setField({ src: null, type: null });
   };
 
   return (

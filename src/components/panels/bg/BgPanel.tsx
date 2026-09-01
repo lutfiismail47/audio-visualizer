@@ -4,10 +4,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { useBgStore } from '../../../store/bgStore';
 
 export const BgPanel: React.FC = () => {
-  const { animation, dark, blur, tint, tintColor, color, type, src, setBg, resetBg } = useBgStore();
-
+  const { animation, dark, blur, color, type, src, setBg, resetBg } = useBgStore();
   const animOptions = ['Tanpa anim', 'Denyut', 'Pan', 'Shake', 'Blitz', 'Flash', 'Zoom'];
-
   const handleSelectImage = async () => {
     try {
       const selected = await open({

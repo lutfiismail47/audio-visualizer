@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Navbar } from './components/navbar/Navbar';
 import { LeftPanel } from './components/panels/LeftPanel';
 import { PreviewArea } from './components/preview/PreviewArea';
