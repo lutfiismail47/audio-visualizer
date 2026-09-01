@@ -39,6 +39,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
+      - name: Setup FFmpeg Sidecar (Linux)
+        run: |
+          set -euo pipefail
+          mkdir -p src-tauri/binaries
+          OUT="src-tauri/binaries/ffmpeg-x86_64-unknown-linux-gnu"
+          curl -fsSL --retry 3 --retry-delay 5 \
+            https://github.com/eugeneware/ffmpeg-static/releases/download/b6.0/linux-x64 \
+            -o "$OUT"
+          chmod +x "$OUT"
+
       - name: Install Frontend Dependencies
         run: pnpm install --frozen-lockfile
 
