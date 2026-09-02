@@ -72,8 +72,10 @@ jobs:
         include:
           - platform: 'ubuntu-22.04'
             target: 'x86_64-unknown-linux-gnu'
+            bundles: 'appimage'
           - platform: 'windows-latest'
             target: 'x86_64-pc-windows-msvc'
+            bundles: 'nsis'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -119,6 +121,7 @@ jobs:
           chmod +x "$OUT"
 
       - name: Download FFmpeg for Windows
+        if: matrix.platform == 'windows-latest'
         shell: pwsh
         run: |
           $url = "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-win32-x64"
@@ -144,7 +147,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: --target ${{ matrix.target }}
+          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
           tagName: ${{ github.ref_name }}
           releaseName: 'App Release ${{ github.ref_name }}'
           releaseBody: 'Release build otomatis untuk versi ${{ github.ref_name }}.'
