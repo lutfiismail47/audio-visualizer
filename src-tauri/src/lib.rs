@@ -49,7 +49,7 @@ async fn start_export(
         "-c:v",
         "libx264",
         "-preset",
-        "fast",
+        "ultrafast",
         "-pix_fmt",
         "yuv420p",
         "-c:a",

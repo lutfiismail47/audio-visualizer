@@ -8,12 +8,12 @@ export default {
     extend: {
       colors: {
         background: {
-          DEFAULT: '#0a0a0a', // Latar belakang utama paling gelap
-          panel: '#161618',   // Latar belakang panel (sedikit lebih terang)
-          light: '#1a1a1a'    // Latar belakang area aktif/hover
+          DEFAULT: '#0a0a0a',
+          panel: '#161618',
+          light: '#1a1a1a'
         },
         accent: {
-          DEFAULT: '#f59e0b', // Oranye untuk elemen aktif (slider, dll)
+          DEFAULT: '#f59e0b',
           hover: '#d97706'
         }
       }

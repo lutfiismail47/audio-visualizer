@@ -11,10 +11,8 @@ export const OverlayLayer: React.FC<Props> = ({ position }) => {
 
   return (
     <>
-      {/* Definisi Filter SVG untuk Hapus Hijau & Hapus Hitam */}
       <svg className="hidden" aria-hidden="true">
         <defs>
-          {/* Filter Green Screen */}
           <filter id="chroma-key-green">
             <feColorMatrix
               type="matrix"
@@ -26,7 +24,6 @@ export const OverlayLayer: React.FC<Props> = ({ position }) => {
             />
           </filter>
 
-          {/* Filter Black Screen (Menghapus warna gelap/hitam secara mutlak) */}
           <filter id="chroma-key-black">
             <feColorMatrix
               type="matrix"
@@ -97,7 +94,6 @@ const DraggableOverlay = ({ overlay, position, updateOverlay, setActiveOverlayId
     e.currentTarget.releasePointerCapture(e.pointerId);
   };
 
-  // Penentuan Filter Berdasarkan Mode Blend
   const getFilterStyle = () => {
     if (overlay.blend === 'Hapus hitam') {
       return 'url(#chroma-key-black)';

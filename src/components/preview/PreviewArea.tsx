@@ -7,10 +7,13 @@ import { BackgroundLayer } from '../../engine/layers/BackgroundLayer';
 import { OverlayLayer } from '../../engine/layers/OverlayLayer';
 import { TextLayer } from '../../engine/layers/TextLayer';
 import { useVisualizerStore } from '../../store/visualizerStore';
+import { useExportStore } from '../../store/exportStore';
 
 export const PreviewArea: React.FC = () => {
   const { isPlaying, currentTime, duration, fileName, volume } = useAudioStore();
   const { layers, activeLayerId, updateActiveLayer } = useVisualizerStore();
+  const isExporting = useExportStore((state) => state.isExporting);
+
   const vizContainerRef = useRef<HTMLDivElement>(null);
   const screenAreaRef = useRef<HTMLDivElement>(null);
 
@@ -23,6 +26,8 @@ export const PreviewArea: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (isExporting) return;
+
     let animId: number;
     let panDirection = 1;
     let currentPan = 0;
@@ -59,7 +64,7 @@ export const PreviewArea: React.FC = () => {
 
     animId = requestAnimationFrame(updateBeatValues);
     return () => cancelAnimationFrame(animId);
-  }, []);
+  }, [isExporting]); // Tambahkan isExporting ke dependensi
 
   // Handler Drag Visualizer
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -148,9 +153,9 @@ export const PreviewArea: React.FC = () => {
           <span className="text-gray-400 text-sm">🔊</span>
           <input 
             type="range" 
-            min={0}
-            max={100}
-            value={volume}
+            min={0} 
+            max={100} 
+            value={volume} 
             onChange={handleVolume}
             className="w-full h-1.5 bg-gray-800 rounded-lg appearance-none accent-accent cursor-pointer" 
           />

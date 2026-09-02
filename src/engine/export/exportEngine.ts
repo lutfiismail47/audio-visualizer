@@ -146,6 +146,10 @@ function pickGifCanvas(
 export const exportVideo = async (resolution: 720 | 1080) => {
   isExportCancelled = false;
 
+  if (useAudioStore.getState().isPlaying) {
+    audioEngine.togglePlay();
+  }
+
   const { audioPath } = useAudioStore.getState();
   if (!audioPath) {
     useExportStore.getState().setExportState({
@@ -234,6 +238,26 @@ export const exportVideo = async (resolution: 720 | 1080) => {
 
     let currentFrame = 0;
 
+    // Buffer IPC batching frame
+    const BATCH_SIZE = 5;
+    const frameByteLength = width * height * 4;
+    const batchBuffer = new Uint8Array(frameByteLength * BATCH_SIZE);
+    let batchFrameCount = 0;
+
+    const flushBatch = async () => {
+      if (batchFrameCount === 0) return;
+      
+      const payload = batchFrameCount === BATCH_SIZE 
+        ? batchBuffer.buffer 
+        : batchBuffer.slice(0, batchFrameCount * frameByteLength).buffer;
+
+      await invoke('push_frame', payload, {
+        headers: { 'Content-Type': 'application/octet-stream' },
+      });
+
+      batchFrameCount = 0;
+    };
+
     const processFrame = async () => {
       if (isExportCancelled) return;
 
@@ -262,10 +286,6 @@ export const exportVideo = async (resolution: 720 | 1080) => {
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
         ctx.clearRect(0, 0, width, height);
-
-        // ==========================================
-        // RENDER BACKGROUND (DENGAN DARK, BLUR & TINT)
-        // ==========================================
         ctx.save();
         ctx.translate(width / 2, height / 2);
 
@@ -279,7 +299,6 @@ export const exportVideo = async (resolution: 720 | 1080) => {
         if (bgStoreData.animation === 'Blitz') bgAlpha = blitzVal;
         ctx.globalAlpha = bgAlpha;
 
-        // Efek Filter Dark & Blur (Diaplikasikan secara eksplisit)
         const darkVal = bgStoreData.dark ?? 0;
         const blurVal = bgStoreData.blur ?? 0;
         ctx.filter = `brightness(${100 - darkVal}%) blur(${blurVal}px)`;
@@ -447,11 +466,12 @@ export const exportVideo = async (resolution: 720 | 1080) => {
         ctx.restore();
 
         const imageData = ctx.getImageData(0, 0, width, height);
-        const rawFrame = new Uint8Array(imageData.data.buffer);
-
-        await invoke('push_frame', rawFrame.buffer, {
-          headers: { 'Content-Type': 'application/octet-stream' },
-        });
+        batchBuffer.set(imageData.data, batchFrameCount * frameByteLength);
+        batchFrameCount++;
+        
+        if (batchFrameCount >= BATCH_SIZE || currentFrame + 1 === totalFrames) {
+          await flushBatch();
+        }
 
         currentFrame++;
 

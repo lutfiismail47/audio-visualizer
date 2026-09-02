@@ -2,7 +2,7 @@
 node_modules/
 .pnpm-store/
 
-# Production & Build outputs (Frontend)
+# Production & Build outputs
 dist/
 build/
 *.local
@@ -11,7 +11,7 @@ build/
 src-tauri/target/
 src-tauri/gen/
 
-# FFmpeg sidecar binaries (jangan commit binary besar ke Git)
+# FFmpeg sidecar binaries
 src-tauri/binaries/ffmpeg*
 src-tauri/binaries/ffprobe*
 src-tauri/binaries/*.exe

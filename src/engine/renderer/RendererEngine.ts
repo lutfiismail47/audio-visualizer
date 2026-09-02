@@ -3,6 +3,7 @@ import { useVisualizerStore } from '../../store/visualizerStore';
 import { BarRenderer } from './BarRenderer';
 import { RadialRenderer } from './RadialRenderer';
 import { ParticleRenderer } from './ParticleRenderer';
+import { useExportStore } from '../../store/exportStore';
 
 class RendererEngine {
   private canvas2d: HTMLCanvasElement;
@@ -84,6 +85,10 @@ class RendererEngine {
   }
 
   private renderFrame() {
+    if (useExportStore.getState().isExporting) {
+      return;
+    }
+
     const t0 = performance.now();
     
     const store = useVisualizerStore.getState();
