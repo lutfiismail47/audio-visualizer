@@ -118,24 +118,23 @@ jobs:
             -o "$OUT"
           chmod +x "$OUT"
 
-      - name: Setup FFmpeg Sidecar (Windows)
-        if: matrix.platform == 'windows-latest'
+      - name: Download FFmpeg for Windows
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
-          New-Item -ItemType Directory -Force -Path src-tauri/binaries
-          $out = "src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe"
-
-          $maxRetries = 3
-          for ($i = 1; $i -le $maxRetries; $i++) {
-            try {
-              Invoke-WebRequest -Uri "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-win32-x64.exe" -OutFile $out
-              break
-            } catch {
-              if ($i -eq $maxRetries) { throw }
-              Start-Sleep -Seconds 5
-            }
+          $url = "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-win32-x64"
+          $output = "src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe"
+          
+          New-Item -ItemType Directory -Force -Path "src-tauri/binaries" | Out-Null
+          Invoke-WebRequest -Uri $url -OutFile $output
+          
+          # Validasi: pastikan yang ke-download benar-benar binary, bukan halaman error HTML
+          $fileSize = (Get-Item $output).Length
+          if ($fileSize -lt 1MB) {
+            Write-Error "Download gagal atau file tidak valid (ukuran cuma $fileSize bytes). Kemungkinan URL asset sudah berubah lagi."
+            Get-Content $output -TotalCount 5  # tampilkan isi file untuk debug
+            exit 1
           }
+          Write-Host "FFmpeg berhasil didownload: $fileSize bytes"
 
       - name: Install Frontend Dependencies
         run: pnpm install --frozen-lockfile
