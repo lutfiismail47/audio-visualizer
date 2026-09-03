@@ -1,18 +1,18 @@
-import { invoke } from '@tauri-apps/api/core';
-import { save } from '@tauri-apps/plugin-dialog';
-import { parseGIF, decompressFrames } from 'gifuct-js';
-import { audioEngine } from '../audio/audioEngine';
-import { useAudioStore } from '../../store/audioStore';
-import { useVisualizerStore } from '../../store/visualizerStore';
-import { useExportStore } from '../../store/exportStore';
-import { useProjectStore } from '../../store/projectStore';
-import { BarRenderer } from '../renderer/BarRenderer';
-import { RadialRenderer } from '../renderer/RadialRenderer';
-import { ParticleRenderer } from '../renderer/ParticleRenderer';
-import { useTextStore } from '../../store/textStore';
-import { useBgStore } from '../../store/bgStore';
-import { useOverlayStore } from '../../store/overlayStore';
-import { visualizerPresets } from '../../types/visualizerPresets';
+import { invoke } from "@tauri-apps/api/core";
+import { save } from "@tauri-apps/plugin-dialog";
+import { parseGIF, decompressFrames } from "gifuct-js";
+import { audioEngine } from "../audio/audioEngine";
+import { useAudioStore } from "../../store/audioStore";
+import { useVisualizerStore } from "../../store/visualizerStore";
+import { useExportStore } from "../../store/exportStore";
+import { useProjectStore } from "../../store/projectStore";
+import { BarRenderer } from "../renderer/BarRenderer";
+import { RadialRenderer } from "../renderer/RadialRenderer";
+import { ParticleRenderer } from "../renderer/ParticleRenderer";
+import { useTextStore } from "../../store/textStore";
+import { useBgStore } from "../../store/bgStore";
+import { useOverlayStore } from "../../store/overlayStore";
+import { visualizerPresets } from "../../types/visualizerPresets";
 
 let isExportCancelled = false;
 let activeParticleRenderer: ParticleRenderer | null = null;
@@ -23,14 +23,14 @@ export const cancelExportVideo = async () => {
     activeParticleRenderer.destroy();
     activeParticleRenderer = null;
   }
-  await invoke('cancel_export');
+  await invoke("cancel_export");
   useExportStore.getState().resetExportState();
 };
 
 const loadImage = (url: string): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'Anonymous';
+    img.crossOrigin = "Anonymous";
     img.onload = () => resolve(img);
     img.onerror = reject;
     img.src = url;
@@ -38,7 +38,7 @@ const loadImage = (url: string): Promise<HTMLImageElement> => {
 };
 
 interface LoadedMedia {
-  kind: 'static' | 'gif';
+  kind: "static" | "gif";
   image?: HTMLImageElement;
   gifCanvases?: HTMLCanvasElement[];
   delays?: number[];
@@ -53,7 +53,8 @@ const loadMediaSource = async (src: string): Promise<LoadedMedia> => {
     const buffer = await response.arrayBuffer();
 
     const header = new Uint8Array(buffer.slice(0, 3));
-    const isGif = header[0] === 0x47 && header[1] === 0x49 && header[2] === 0x46;
+    const isGif =
+      header[0] === 0x47 && header[1] === 0x49 && header[2] === 0x46;
 
     if (isGif) {
       const parsedGif = parseGIF(buffer);
@@ -63,13 +64,17 @@ const loadMediaSource = async (src: string): Promise<LoadedMedia> => {
         const gifWidth = parsedGif.lsd.width || frames[0].dims.width;
         const gifHeight = parsedGif.lsd.height || frames[0].dims.height;
 
-        const tempCanvas = document.createElement('canvas');
+        const tempCanvas = document.createElement("canvas");
         tempCanvas.width = gifWidth;
         tempCanvas.height = gifHeight;
-        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true })!;
+        const tempCtx = tempCanvas.getContext("2d", {
+          willReadFrequently: true,
+        })!;
 
-        const patchCanvas = document.createElement('canvas');
-        const patchCtx = patchCanvas.getContext('2d', { willReadFrequently: true })!;
+        const patchCanvas = document.createElement("canvas");
+        const patchCtx = patchCanvas.getContext("2d", {
+          willReadFrequently: true,
+        })!;
 
         const fullCanvases: HTMLCanvasElement[] = [];
         const delays: number[] = [];
@@ -86,26 +91,31 @@ const loadMediaSource = async (src: string): Promise<LoadedMedia> => {
           const patchData = new ImageData(
             new Uint8ClampedArray(frame.patch),
             frame.dims.width,
-            frame.dims.height
+            frame.dims.height,
           );
           patchCtx.putImageData(patchData, 0, 0);
 
           tempCtx.drawImage(patchCanvas, frame.dims.left, frame.dims.top);
 
-          const frameSnapshot = document.createElement('canvas');
+          const frameSnapshot = document.createElement("canvas");
           frameSnapshot.width = gifWidth;
           frameSnapshot.height = gifHeight;
-          const snapCtx = frameSnapshot.getContext('2d')!;
+          const snapCtx = frameSnapshot.getContext("2d")!;
           snapCtx.drawImage(tempCanvas, 0, 0);
           fullCanvases.push(frameSnapshot);
 
           if (frame.disposalType === 2) {
-            tempCtx.clearRect(frame.dims.left, frame.dims.top, frame.dims.width, frame.dims.height);
+            tempCtx.clearRect(
+              frame.dims.left,
+              frame.dims.top,
+              frame.dims.width,
+              frame.dims.height,
+            );
           }
         }
 
         return {
-          kind: 'gif',
+          kind: "gif",
           gifCanvases: fullCanvases,
           delays,
           totalDuration,
@@ -115,12 +125,12 @@ const loadMediaSource = async (src: string): Promise<LoadedMedia> => {
       }
     }
   } catch (err) {
-    console.warn('Fallback ke static image untuk aset:', err);
+    console.warn("Fallback ke static image untuk aset:", err);
   }
 
   const staticImg = await loadImage(src);
   return {
-    kind: 'static',
+    kind: "static",
     image: staticImg,
     width: staticImg.naturalWidth || 1920,
     height: staticImg.naturalHeight || 1080,
@@ -131,7 +141,7 @@ function pickGifCanvas(
   canvases: HTMLCanvasElement[],
   delays: number[],
   totalDuration: number,
-  elapsedMs: number
+  elapsedMs: number,
 ): HTMLCanvasElement {
   if (canvases.length === 1 || totalDuration <= 0) return canvases[0];
   const t = elapsedMs % totalDuration;
@@ -154,7 +164,7 @@ export const exportVideo = async (resolution: 720 | 1080) => {
   if (!audioPath) {
     useExportStore.getState().setExportState({
       isExporting: true,
-      errorText: 'Pilih atau masukkan file audio terlebih dahulu!',
+      errorText: "Pilih atau masukkan file audio terlebih dahulu!",
     });
     return;
   }
@@ -162,7 +172,7 @@ export const exportVideo = async (resolution: 720 | 1080) => {
   const currentProjectName = useProjectStore.getState().projectName;
 
   const outputPath = await save({
-    filters: [{ name: 'Video', extensions: ['mp4'] }],
+    filters: [{ name: "Video", extensions: ["mp4"] }],
     defaultPath: `${currentProjectName}.mp4`,
   });
 
@@ -180,11 +190,24 @@ export const exportVideo = async (resolution: 720 | 1080) => {
     isComplete: false,
     errorText: null,
     progress: 0,
-    statusText: 'Menyiapkan Engine Render...',
+    statusText: "Menyiapkan Engine Render...",
   });
 
   try {
-    const offlineCtx = new OfflineAudioContext(2, buffer.length, buffer.sampleRate);
+    const previewEl = document.getElementById("preview-screen");
+    const previewWidth = previewEl?.clientWidth || (width === 1920 ? 960 : 640);
+    const previewHeight =
+      previewEl?.clientHeight || (height === 1080 ? 540 : 360);
+
+    const scaleX = width / previewWidth;
+    const scaleY = height / previewHeight;
+    const scaleFactor = Math.min(scaleX, scaleY);
+
+    const offlineCtx = new OfflineAudioContext(
+      2,
+      buffer.length,
+      buffer.sampleRate,
+    );
     const source = offlineCtx.createBufferSource();
     source.buffer = buffer;
     const analyser = offlineCtx.createAnalyser();
@@ -197,12 +220,15 @@ export const exportVideo = async (resolution: 720 | 1080) => {
     const frameDuration = 1 / fps;
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
 
-    const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
-    if (!ctx) throw new Error('Gagal membuat konteks kanvas 2D');
+    const ctx = canvas.getContext("2d", {
+      alpha: false,
+      willReadFrequently: true,
+    });
+    if (!ctx) throw new Error("Gagal membuat konteks kanvas 2D");
 
     const vizStore = useVisualizerStore.getState();
     const bgStoreData = useBgStore.getState();
@@ -218,7 +244,7 @@ export const exportVideo = async (resolution: 720 | 1080) => {
     const particleTicksPerFrame = Math.max(1, Math.round(60 / fps));
 
     let loadedBg: LoadedMedia | null = null;
-    if (bgStoreData.type === 'image' && bgStoreData.src) {
+    if (bgStoreData.type === "image" && bgStoreData.src) {
       loadedBg = await loadMediaSource(bgStoreData.src);
     }
 
@@ -234,11 +260,17 @@ export const exportVideo = async (resolution: 720 | 1080) => {
       }
     }
 
-    await invoke('start_export', { width, height, fps, totalFrames, audioPath, outputPath });
+    await invoke("start_export", {
+      width,
+      height,
+      fps,
+      totalFrames,
+      audioPath,
+      outputPath,
+    });
 
     let currentFrame = 0;
 
-    // Buffer IPC batching frame
     const BATCH_SIZE = 5;
     const frameByteLength = width * height * 4;
     const batchBuffer = new Uint8Array(frameByteLength * BATCH_SIZE);
@@ -246,13 +278,14 @@ export const exportVideo = async (resolution: 720 | 1080) => {
 
     const flushBatch = async () => {
       if (batchFrameCount === 0) return;
-      
-      const payload = batchFrameCount === BATCH_SIZE 
-        ? batchBuffer.buffer 
-        : batchBuffer.slice(0, batchFrameCount * frameByteLength).buffer;
 
-      await invoke('push_frame', payload, {
-        headers: { 'Content-Type': 'application/octet-stream' },
+      const payload =
+        batchFrameCount === BATCH_SIZE
+          ? batchBuffer.buffer
+          : batchBuffer.slice(0, batchFrameCount * frameByteLength).buffer;
+
+      await invoke("push_frame", payload, {
+        headers: { "Content-Type": "application/octet-stream" },
       });
 
       batchFrameCount = 0;
@@ -273,7 +306,8 @@ export const exportVideo = async (resolution: 720 | 1080) => {
         const elapsedMs = timeSec * 1000;
         const beatScale = 1 + normalized * 0.18;
         const zoomScale = 1 + normalized * 0.28;
-        const shakeVal = normalized > 0.4 ? (Math.random() - 0.5) * normalized * 18 : 0;
+        const shakeVal =
+          normalized > 0.4 ? (Math.random() - 0.5) * normalized * 18 : 0;
         const panVal = Math.sin(timeSec * 1.5) * 40;
         const floatVal = Math.sin(timeSec * 2.0) * -20;
         const flashVal = Math.max(0.15, 1 - normalized * 0.85);
@@ -282,50 +316,67 @@ export const exportVideo = async (resolution: 720 | 1080) => {
         const rotateCCW = -(timeSec * 0.1 * 360 * Math.PI) / 180;
 
         ctx.save();
-        ctx.filter = 'none';
+        ctx.filter = "none";
         ctx.globalAlpha = 1;
-        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalCompositeOperation = "source-over";
         ctx.clearRect(0, 0, width, height);
         ctx.save();
         ctx.translate(width / 2, height / 2);
 
-        if (bgStoreData.animation === 'Denyut') ctx.scale(beatScale, beatScale);
-        else if (bgStoreData.animation === 'Zoom') ctx.scale(zoomScale, zoomScale);
-        else if (bgStoreData.animation === 'Pan') ctx.translate(panVal, 0);
-        else if (bgStoreData.animation === 'Shake') ctx.translate(shakeVal, 0);
+        if (bgStoreData.animation === "Denyut") ctx.scale(beatScale, beatScale);
+        else if (bgStoreData.animation === "Zoom")
+          ctx.scale(zoomScale, zoomScale);
+        else if (bgStoreData.animation === "Pan")
+          ctx.translate(panVal * scaleFactor, 0);
+        else if (bgStoreData.animation === "Shake")
+          ctx.translate(shakeVal * scaleFactor, 0);
 
         let bgAlpha = 1;
-        if (bgStoreData.animation === 'Flash') bgAlpha = flashVal;
-        if (bgStoreData.animation === 'Blitz') bgAlpha = blitzVal;
+        if (bgStoreData.animation === "Flash") bgAlpha = flashVal;
+        if (bgStoreData.animation === "Blitz") bgAlpha = blitzVal;
         ctx.globalAlpha = bgAlpha;
 
-        const darkVal = bgStoreData.dark ?? 0;
-        const blurVal = bgStoreData.blur ?? 0;
-        ctx.filter = `brightness(${100 - darkVal}%) blur(${blurVal}px)`;
-
         if (loadedBg) {
-          if (loadedBg.kind === 'gif' && loadedBg.gifCanvases && loadedBg.delays && loadedBg.totalDuration) {
-            const frameCanvas = pickGifCanvas(loadedBg.gifCanvases, loadedBg.delays, loadedBg.totalDuration, elapsedMs);
+          if (
+            loadedBg.kind === "gif" &&
+            loadedBg.gifCanvases &&
+            loadedBg.delays &&
+            loadedBg.totalDuration
+          ) {
+            const frameCanvas = pickGifCanvas(
+              loadedBg.gifCanvases,
+              loadedBg.delays,
+              loadedBg.totalDuration,
+              elapsedMs,
+            );
             ctx.drawImage(frameCanvas, -width / 2, -height / 2, width, height);
           } else if (loadedBg.image) {
-            ctx.drawImage(loadedBg.image, -width / 2, -height / 2, width, height);
+            ctx.drawImage(
+              loadedBg.image,
+              -width / 2,
+              -height / 2,
+              width,
+              height,
+            );
           }
         } else {
-          ctx.fillStyle = bgStoreData.color || '#0a0a0a';
+          ctx.fillStyle = bgStoreData.color || "#0a0a0a";
           ctx.fillRect(-width / 2, -height / 2, width, height);
         }
         ctx.restore();
 
         if (bgStoreData.tint > 0) {
           ctx.save();
-          ctx.filter = 'none';
+          ctx.filter = "none";
           ctx.globalAlpha = bgStoreData.tint / 100;
-          ctx.fillStyle = bgStoreData.tintColor || '#000000';
+          ctx.fillStyle = bgStoreData.tintColor || "#000000";
           ctx.fillRect(0, 0, width, height);
           ctx.restore();
         }
 
-        const renderOverlayGroup = (targetLayer: 'Depan Viz' | 'Belakang Viz') => {
+        const renderOverlayGroup = (
+          targetLayer: "Depan Viz" | "Belakang Viz",
+        ) => {
           overlayStoreData.overlays
             .filter((ov) => ov.layer === targetLayer && ov.src)
             .forEach((ov) => {
@@ -333,49 +384,77 @@ export const exportVideo = async (resolution: 720 | 1080) => {
               if (!item) return;
 
               ctx.save();
-              ctx.filter = 'none';
-              ctx.translate(width / 2 + (ov.x || 0), height / 2 + (ov.y || 0));
+              ctx.filter = "none";
 
-              if (ov.animation === 'Denyut') ctx.scale(beatScale, beatScale);
-              else if (ov.animation === 'Zoom') ctx.scale(zoomScale, zoomScale);
-              else if (ov.animation === 'Pan') ctx.translate(panVal, 0);
-              else if (ov.animation === 'Float') ctx.translate(0, floatVal);
-              else if (ov.animation === 'Shake') ctx.translate(shakeVal, 0);
-              else if (ov.animation === 'Putar searah jarum jam') ctx.rotate(rotateCW);
-              else if (ov.animation === 'Putar kebalikan arah jarum jam') ctx.rotate(rotateCCW);
+              // Sinkronkan titik koordinat dengan skala layar preview
+              const posX = width / 2 + (ov.x || 0) * scaleX;
+              const posY = height / 2 + (ov.y || 0) * scaleY;
+              ctx.translate(posX, posY);
 
-              let alpha = (ov.opacity ?? 50) / 100;
-              if (ov.animation === 'Flash') alpha *= flashVal;
-              if (ov.animation === 'Blitz') alpha *= blitzVal;
+              if (ov.animation === "Denyut") ctx.scale(beatScale, beatScale);
+              else if (ov.animation === "Zoom") ctx.scale(zoomScale, zoomScale);
+              else if (ov.animation === "Pan")
+                ctx.translate(panVal * scaleFactor, 0);
+              else if (ov.animation === "Float")
+                ctx.translate(0, floatVal * scaleFactor);
+              else if (ov.animation === "Shake")
+                ctx.translate(shakeVal * scaleFactor, 0);
+              else if (ov.animation === "Putar searah jarum jam")
+                ctx.rotate(rotateCW);
+              else if (ov.animation === "Putar kebalikan arah jarum jam")
+                ctx.rotate(rotateCCW);
+
+              const rawOpacity = ov.opacity ?? 100;
+              let alpha = rawOpacity > 1 ? rawOpacity / 100 : rawOpacity;
+
+              if (ov.animation === "Flash") alpha *= flashVal;
+              if (ov.animation === "Blitz") alpha *= blitzVal;
               ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+              ctx.globalCompositeOperation = "source-over";
 
-              if (ov.blend === 'Hapus hitam') {
-                ctx.globalCompositeOperation = 'screen';
+              // Skalakan ukuran box overlay relatif terhadap kontainer 16:9
+              const boxWidth = (width * (ov.size || 100)) / 100;
+              const boxHeight = (height * (ov.size || 100)) / 100;
+              const itemAspect = item.width / item.height || 1;
+              const boxAspect = boxWidth / boxHeight;
+
+              let drawW = boxWidth;
+              let drawH = boxHeight;
+
+              if (itemAspect > boxAspect) {
+                drawH = boxWidth / itemAspect;
               } else {
-                ctx.globalCompositeOperation = 'source-over';
+                drawW = boxHeight * itemAspect;
               }
 
-              const ovWidth = (width * (ov.size || 100)) / 100;
-              const aspectRatio = item.width / item.height || 1;
-              const ovHeight = ovWidth / aspectRatio;
-
-              if (item.kind === 'gif' && item.gifCanvases && item.delays && item.totalDuration) {
+              if (
+                item.kind === "gif" &&
+                item.gifCanvases &&
+                item.delays &&
+                item.totalDuration
+              ) {
                 const currentFrameCanvas = pickGifCanvas(
                   item.gifCanvases,
                   item.delays,
                   item.totalDuration,
-                  elapsedMs
+                  elapsedMs,
                 );
-                ctx.drawImage(currentFrameCanvas, -ovWidth / 2, -ovHeight / 2, ovWidth, ovHeight);
+                ctx.drawImage(
+                  currentFrameCanvas,
+                  -drawW / 2,
+                  -drawH / 2,
+                  drawW,
+                  drawH,
+                );
               } else if (item.image) {
-                ctx.drawImage(item.image, -ovWidth / 2, -ovHeight / 2, ovWidth, ovHeight);
+                ctx.drawImage(item.image, -drawW / 2, -drawH / 2, drawW, drawH);
               }
 
               ctx.restore();
             });
         };
 
-        renderOverlayGroup('Belakang Viz');
+        renderOverlayGroup("Belakang Viz");
 
         vizStore.layers.forEach((layer) => {
           const preset = layer.preset || visualizerPresets[0];
@@ -383,80 +462,111 @@ export const exportVideo = async (resolution: 720 | 1080) => {
           const config = preset.config;
 
           ctx.save();
-          ctx.filter = 'none';
+          ctx.filter = "none";
           ctx.globalAlpha = 1;
-          ctx.globalCompositeOperation = 'source-over';
-          ctx.translate(layer.x || 0, layer.y || 0);
+          ctx.globalCompositeOperation = "source-over";
+          ctx.translate((layer.x || 0) * scaleX, (layer.y || 0) * scaleY);
 
-          if (config.primitive === 'bar') {
-            barRenderer.render(ctx, dataArray, config, width, height, layer.size || 75, layer.position || 'bottom');
-          } else if (config.primitive === 'radial') {
-            radialRenderer.render(ctx, dataArray, config, width, height, layer.size || 75, layer.position || 'center');
+          if (config.primitive === "bar") {
+            barRenderer.render(
+              ctx,
+              dataArray,
+              config,
+              width,
+              height,
+              layer.size || 75,
+              layer.position || "bottom",
+            );
+          } else if (config.primitive === "radial") {
+            radialRenderer.render(
+              ctx,
+              dataArray,
+              config,
+              width,
+              height,
+              layer.size || 75,
+              layer.position || "center",
+            );
           }
 
           ctx.restore();
         });
 
         const particleLayers = vizStore.layers.filter(
-          (l) => (l.preset || visualizerPresets[0]).config.primitive === 'particle'
+          (l) =>
+            (l.preset || visualizerPresets[0]).config.primitive === "particle",
         );
 
         if (particleLayers.length > 0) {
           for (let t = 0; t < particleTicksPerFrame; t++) {
-            (particleRenderer as any).render(dataArray, particleLayers, width, height);
+            (particleRenderer as any).render(
+              dataArray,
+              particleLayers,
+              width,
+              height,
+            );
           }
           const particleCanvas = particleRenderer.getCanvas();
           if (particleCanvas) {
             ctx.save();
-            ctx.filter = 'none';
+            ctx.filter = "none";
             ctx.globalAlpha = 1;
-            ctx.globalCompositeOperation = 'source-over';
+            ctx.globalCompositeOperation = "source-over";
             ctx.drawImage(particleCanvas, 0, 0, width, height);
             ctx.restore();
           }
         }
 
-        renderOverlayGroup('Depan Viz');
+        renderOverlayGroup("Depan Viz");
 
         textStoreData.texts.forEach((t) => {
           ctx.save();
-          ctx.filter = 'none';
-          ctx.globalCompositeOperation = 'source-over';
-          ctx.translate(width / 2 + (t.x || 0), height / 2 + (t.y || 0));
+          ctx.filter = "none";
+          ctx.globalCompositeOperation = "source-over";
 
-          if (t.animation === 'Denyut') ctx.scale(beatScale, beatScale);
-          else if (t.animation === 'Pan') ctx.translate(panVal, 0);
-          else if (t.animation === 'Float') ctx.translate(0, floatVal);
-          else if (t.animation === 'Shake') ctx.translate(shakeVal, 0);
+          // Sinkronkan posisi titik tengah teks
+          const posX = width / 2 + (t.x || 0) * scaleX;
+          const posY = height / 2 + (t.y || 0) * scaleY;
+          ctx.translate(posX, posY);
+
+          if (t.animation === "Denyut") ctx.scale(beatScale, beatScale);
+          else if (t.animation === "Pan")
+            ctx.translate(panVal * scaleFactor, 0);
+          else if (t.animation === "Float")
+            ctx.translate(0, floatVal * scaleFactor);
+          else if (t.animation === "Shake")
+            ctx.translate(shakeVal * scaleFactor, 0);
 
           let alpha = (t.opacity ?? 100) / 100;
-          if (t.animation === 'Flash') alpha *= flashVal;
-          if (t.animation === 'Blitz') alpha *= blitzVal;
+          if (t.animation === "Flash") alpha *= flashVal;
+          if (t.animation === "Blitz") alpha *= blitzVal;
           ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
 
-          ctx.font = `${t.fontStyle || 'normal'} ${t.fontWeight || '400'} ${t.size}px "${t.font}", sans-serif`;
+          // Skalakan ukuran teks agar proporsi identik dengan tampilan monitor
+          const scaledFontSize = Math.round((t.size || 32) * scaleFactor);
+          ctx.font = `${t.fontStyle || "normal"} ${t.fontWeight || "400"} ${scaledFontSize}px "${t.font}", sans-serif`;
           ctx.fillStyle = t.color;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
 
-          if (t.effect === 'Bayangan') {
-            ctx.shadowColor = 'rgba(0,0,0,0.8)';
-            ctx.shadowBlur = 8;
-            ctx.shadowOffsetX = 4;
-            ctx.shadowOffsetY = 4;
-          } else if (t.effect === 'Glow') {
+          if (t.effect === "Bayangan") {
+            ctx.shadowColor = "rgba(0,0,0,0.8)";
+            ctx.shadowBlur = 8 * scaleFactor;
+            ctx.shadowOffsetX = 4 * scaleFactor;
+            ctx.shadowOffsetY = 4 * scaleFactor;
+          } else if (t.effect === "Glow") {
             ctx.shadowColor = t.color;
-            ctx.shadowBlur = 15;
-          } else if (t.effect === 'Neon') {
+            ctx.shadowBlur = 15 * scaleFactor;
+          } else if (t.effect === "Neon") {
             ctx.shadowColor = t.color;
-            ctx.shadowBlur = 25;
+            ctx.shadowBlur = 25 * scaleFactor;
           }
 
           ctx.fillText(t.text, 0, 0);
 
-          if (t.effect === 'Outline') {
+          if (t.effect === "Outline") {
             ctx.strokeStyle = t.color;
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 2 * scaleFactor;
             ctx.strokeText(t.text, 0, 0);
           }
 
@@ -468,7 +578,7 @@ export const exportVideo = async (resolution: 720 | 1080) => {
         const imageData = ctx.getImageData(0, 0, width, height);
         batchBuffer.set(imageData.data, batchFrameCount * frameByteLength);
         batchFrameCount++;
-        
+
         if (batchFrameCount >= BATCH_SIZE || currentFrame + 1 === totalFrames) {
           await flushBatch();
         }
@@ -483,17 +593,19 @@ export const exportVideo = async (resolution: 720 | 1080) => {
         }
 
         if (currentFrame < totalFrames) {
-          offlineCtx.suspend((currentFrame + 1) * frameDuration).then(processFrame);
+          offlineCtx
+            .suspend((currentFrame + 1) * frameDuration)
+            .then(processFrame);
         } else {
           if (!isExportCancelled) {
-            await invoke('finish_export');
+            await invoke("finish_export");
             if (activeParticleRenderer) {
               activeParticleRenderer.destroy();
               activeParticleRenderer = null;
             }
             useExportStore.getState().setExportState({
               progress: 100,
-              statusText: 'Selesai!',
+              statusText: "Selesai!",
               isComplete: true,
             });
           }
@@ -501,13 +613,13 @@ export const exportVideo = async (resolution: 720 | 1080) => {
 
         offlineCtx.resume();
       } catch (innerError: any) {
-        console.error('Frame processing error:', innerError);
+        console.error("Frame processing error:", innerError);
         isExportCancelled = true;
         if (activeParticleRenderer) {
           activeParticleRenderer.destroy();
           activeParticleRenderer = null;
         }
-        await invoke('cancel_export');
+        await invoke("cancel_export");
         useExportStore.getState().setExportState({
           errorText: `Gagal memproses frame: ${innerError.message || innerError}`,
         });
@@ -517,12 +629,12 @@ export const exportVideo = async (resolution: 720 | 1080) => {
     offlineCtx.suspend(frameDuration).then(processFrame);
     offlineCtx.startRendering();
   } catch (error: any) {
-    console.error('Export initialization error:', error);
+    console.error("Export initialization error:", error);
     if (activeParticleRenderer) {
       activeParticleRenderer.destroy();
       activeParticleRenderer = null;
     }
-    await invoke('cancel_export');
+    await invoke("cancel_export");
     useExportStore.getState().setExportState({
       errorText: `Gagal inisialisasi export: ${error.message || error}`,
     });
