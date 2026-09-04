@@ -4,6 +4,23 @@ export class BarRenderer {
   private peaks: number[] = [];
   private peakSpeeds: number[] = [];
 
+  private hexToRgba(hex: string, alpha: number): string {
+    const clean = hex.replace("#", "");
+    const bigint = parseInt(
+      clean.length === 3
+        ? clean
+            .split("")
+            .map((c) => c + c)
+            .join("")
+        : clean,
+      16,
+    );
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
   public render(
     ctx: CanvasRenderingContext2D,
     data: Uint8Array,
@@ -121,9 +138,20 @@ export class BarRenderer {
       }
 
       if (config.mirror && position !== "full") {
+        const reflectionHeight = barHeight * 0.6;
+        const baseColor = config.colors[0] || "#ffffff";
+        const reflGrad = ctx.createLinearGradient(
+          0,
+          height,
+          0,
+          height + reflectionHeight,
+        );
+        reflGrad.addColorStop(0, this.hexToRgba(baseColor, 0.35));
+        reflGrad.addColorStop(1, this.hexToRgba(baseColor, 0));
+
         ctx.save();
-        ctx.globalAlpha = 0.3;
-        ctx.fillRect(x, height, barWidth, -barHeight / 2);
+        ctx.fillStyle = reflGrad;
+        ctx.fillRect(x, height, barWidth, reflectionHeight);
         ctx.restore();
       }
     }

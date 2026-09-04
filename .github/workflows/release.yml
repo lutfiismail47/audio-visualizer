@@ -1,1 +1,145 @@
-{"name":"Release App","on":{"push":{"tags":["v*"]}},"concurrency":{"group":"release-${{ github.ref }}","cancel-in-progress":false},"jobs":{"test":{"runs-on":"ubuntu-22.04","steps":[{"uses":"actions/checkout@v4"},{"name":"Install pnpm","uses":"pnpm/action-setup@v3","with":{"version":"latest"}},{"name":"Setup Node.js","uses":"actions/setup-node@v4","with":{"node-version":22,"cache":"pnpm"}},{"name":"Install Rust Stable","uses":"dtolnay/rust-toolchain@stable"},{"name":"Cache Rust (cargo + target)","uses":"Swatinem/rust-cache@v2","with":{"workspaces":"src-tauri -> target"}},{"name":"Install Linux Dependencies","run":"sudo apt-get update\nsudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev\n"},{"name":"Setup FFmpeg Sidecar (Linux)","run":"set -euo pipefail\nmkdir -p src-tauri/binaries\nOUT=\"src-tauri/binaries/ffmpeg-x86_64-unknown-linux-gnu\"\ncurl -fsSL --retry 3 --retry-delay 5 \\\n  https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-linux-x64 \\\n  -o \"$OUT\"\nchmod +x \"$OUT\"\n"},{"name":"Install Frontend Dependencies","run":"pnpm install --frozen-lockfile"},{"name":"Type-check Frontend (tsc)","run":"pnpm exec tsc --noEmit"},{"name":"Build Frontend","run":"pnpm build"},{"name":"Check Rust (cargo check)","working-directory":"src-tauri","run":"cargo check --locked"}]},"release":{"needs":"test","permissions":{"contents":"write"},"strategy":{"fail-fast":false,"matrix":{"include":[{"platform":"ubuntu-22.04","target":"x86_64-unknown-linux-gnu","bundles":"appimage"},{"platform":"windows-latest","target":"x86_64-pc-windows-msvc","bundles":"nsis"}]}},"runs-on":"${{ matrix.platform }}","steps":[{"uses":"actions/checkout@v4"},{"name":"Install pnpm","uses":"pnpm/action-setup@v3","with":{"version":"latest"}},{"name":"Setup Node.js","uses":"actions/setup-node@v4","with":{"node-version":22,"cache":"pnpm"}},{"name":"Install Rust Stable","uses":"dtolnay/rust-toolchain@stable","with":{"targets":"${{ matrix.target }}"}},{"name":"Cache Rust (cargo + target)","uses":"Swatinem/rust-cache@v2","with":{"workspaces":"src-tauri -> target","key":"${{ matrix.target }}"}},{"name":"Install Linux Dependencies (Ubuntu only)","if":"matrix.platform == 'ubuntu-22.04'","run":"sudo apt-get update\nsudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev\n"},{"name":"Setup FFmpeg Sidecar (Linux)","if":"matrix.platform == 'ubuntu-22.04'","run":"set -euo pipefail\nmkdir -p src-tauri/binaries\nOUT=\"src-tauri/binaries/ffmpeg-x86_64-unknown-linux-gnu\"\ncurl -fsSL --retry 3 --retry-delay 5 \\\n  https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-linux-x64 \\\n  -o \"$OUT\"\nchmod +x \"$OUT\"\n"},{"name":"Download FFmpeg for Windows","if":"matrix.platform == 'windows-latest'","shell":"pwsh","run":"$url = \"https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-win32-x64\"\n$output = \"src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe\"\n\nNew-Item -ItemType Directory -Force -Path \"src-tauri/binaries\" | Out-Null\nInvoke-WebRequest -Uri $url -OutFile $output\n\n# Validasi:pastikan yang ke-download benar-benar binary, bukan halaman error HTML\n$fileSize = (Get-Item $output).Length\nif ($fileSize -lt 1MB) {\n  Write-Error \"Download gagal atau file tidak valid (ukuran cuma $fileSize bytes). Kemungkinan URL asset sudah berubah lagi.\"\n  Get-Content $output -TotalCount 5  # tampilkan isi file untuk debug\n  exit 1\n}\nWrite-Host \"FFmpeg berhasil didownload:$fileSize bytes\"\n"},{"name":"Install Frontend Dependencies","run":"pnpm install --frozen-lockfile"},{"name":"Build Tauri App & Publish Release","uses":"tauri-apps/tauri-action@v0","env":{"GITHUB_TOKEN":"${{ secrets.GITHUB_TOKEN }}"},"with":{"args":"--target ${{ matrix.target }} --bundles ${{ matrix.bundles }}","tagName":"${{ github.ref_name }}","releaseName":"App Release ${{ github.ref_name }}","releaseBody":"Release build otomatis untuk versi ${{ github.ref_name }}.","releaseDraft":false,"prerelease":false}}]}}}
+{
+  "name": "Release App",
+  "on": { "push": { "tags": ["v*"] } },
+  "concurrency":
+    { "group": "release-${{ github.ref }}", "cancel-in-progress": false },
+  "jobs":
+    {
+      "test":
+        {
+          "runs-on": "ubuntu-22.04",
+          "steps":
+            [
+              { "uses": "actions/checkout@v4" },
+              {
+                "name": "Install pnpm",
+                "uses": "pnpm/action-setup@v3",
+                "with": { "version": "latest" },
+              },
+              {
+                "name": "Setup Node.js",
+                "uses": "actions/setup-node@v4",
+                "with": { "node-version": 22, "cache": "pnpm" },
+              },
+              {
+                "name": "Install Rust Stable",
+                "uses": "dtolnay/rust-toolchain@stable",
+              },
+              {
+                "name": "Cache Rust (cargo + target)",
+                "uses": "Swatinem/rust-cache@v2",
+                "with": { "workspaces": "src-tauri -> target" },
+              },
+              {
+                "name": "Install Linux Dependencies",
+                "run": "sudo apt-get update\nsudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev\n",
+              },
+              {
+                "name": "Setup FFmpeg Sidecar (Linux)",
+                "run": "set -euo pipefail\nmkdir -p src-tauri/binaries\nOUT=\"src-tauri/binaries/ffmpeg-x86_64-unknown-linux-gnu\"\ncurl -fsSL --retry 3 --retry-delay 5 \\\n  https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-linux-x64 \\\n  -o \"$OUT\"\nchmod +x \"$OUT\"\n",
+              },
+              {
+                "name": "Install Frontend Dependencies",
+                "run": "pnpm install --frozen-lockfile",
+              },
+              {
+                "name": "Type-check Frontend (tsc)",
+                "run": "pnpm exec tsc --noEmit",
+              },
+              { "name": "Build Frontend", "run": "pnpm build" },
+              {
+                "name": "Check Rust (cargo check)",
+                "working-directory": "src-tauri",
+                "run": "cargo check --locked",
+              },
+            ],
+        },
+      "release":
+        {
+          "needs": "test",
+          "permissions": { "contents": "write" },
+          "strategy":
+            {
+              "fail-fast": false,
+              "matrix":
+                {
+                  "include":
+                    [
+                      {
+                        "platform": "ubuntu-22.04",
+                        "target": "x86_64-unknown-linux-gnu",
+                        "bundles": "appimage",
+                      },
+                      {
+                        "platform": "windows-latest",
+                        "target": "x86_64-pc-windows-msvc",
+                        "bundles": "nsis",
+                      },
+                    ],
+                },
+            },
+          "runs-on": "${{ matrix.platform }}",
+          "steps":
+            [
+              { "uses": "actions/checkout@v4" },
+              {
+                "name": "Install pnpm",
+                "uses": "pnpm/action-setup@v3",
+                "with": { "version": "latest" },
+              },
+              {
+                "name": "Setup Node.js",
+                "uses": "actions/setup-node@v4",
+                "with": { "node-version": 22, "cache": "pnpm" },
+              },
+              {
+                "name": "Install Rust Stable",
+                "uses": "dtolnay/rust-toolchain@stable",
+                "with": { "targets": "${{ matrix.target }}" },
+              },
+              {
+                "name": "Cache Rust (cargo + target)",
+                "uses": "Swatinem/rust-cache@v2",
+                "with":
+                  {
+                    "workspaces": "src-tauri -> target",
+                    "key": "${{ matrix.target }}",
+                  },
+              },
+              {
+                "name": "Install Linux Dependencies (Ubuntu only)",
+                "if": "matrix.platform == 'ubuntu-22.04'",
+                "run": "sudo apt-get update\nsudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev\n",
+              },
+              {
+                "name": "Setup FFmpeg Sidecar (Linux)",
+                "if": "matrix.platform == 'ubuntu-22.04'",
+                "run": "set -euo pipefail\nmkdir -p src-tauri/binaries\nOUT=\"src-tauri/binaries/ffmpeg-x86_64-unknown-linux-gnu\"\ncurl -fsSL --retry 3 --retry-delay 5 \\\n  https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-linux-x64 \\\n  -o \"$OUT\"\nchmod +x \"$OUT\"\n",
+              },
+              {
+                "name": "Download FFmpeg for Windows",
+                "if": "matrix.platform == 'windows-latest'",
+                "shell": "pwsh",
+                "run": "$url = \"https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-win32-x64\"\n$output = \"src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe\"\n\nNew-Item -ItemType Directory -Force -Path \"src-tauri/binaries\" | Out-Null\nInvoke-WebRequest -Uri $url -OutFile $output\n\n# Validasi:pastikan yang ke-download benar-benar binary, bukan halaman error HTML\n$fileSize = (Get-Item $output).Length\nif ($fileSize -lt 1MB) {\n  Write-Error \"Download gagal atau file tidak valid (ukuran cuma $fileSize bytes). Kemungkinan URL asset sudah berubah lagi.\"\n  Get-Content $output -TotalCount 5  # tampilkan isi file untuk debug\n  exit 1\n}\nWrite-Host \"FFmpeg berhasil didownload:$fileSize bytes\"\n",
+              },
+              {
+                "name": "Install Frontend Dependencies",
+                "run": "pnpm install --frozen-lockfile",
+              },
+              {
+                "name": "Build Tauri App & Publish Release",
+                "uses": "tauri-apps/tauri-action@v0",
+                "env": { "GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}" },
+                "with":
+                  {
+                    "args": "--target ${{ matrix.target }} --bundles ${{ matrix.bundles }}",
+                    "tagName": "${{ github.ref_name }}",
+                    "releaseName": "App Release ${{ github.ref_name }}",
+                    "releaseDraft": false,
+                    "prerelease": false,
+                  },
+              },
+            ],
+        },
+    },
+}

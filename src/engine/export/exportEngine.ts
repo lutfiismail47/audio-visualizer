@@ -9,6 +9,9 @@ import { useProjectStore } from "../../store/projectStore";
 import { BarRenderer } from "../renderer/BarRenderer";
 import { RadialRenderer } from "../renderer/RadialRenderer";
 import { ParticleRenderer } from "../renderer/ParticleRenderer";
+import { LedRenderer } from "../renderer/LedRenderer";
+import { GraphRenderer } from "../renderer/GraphRenderer";
+import { buildMelBinRanges, applyMelScale } from "../audio/melScale";
 import { useTextStore } from "../../store/textStore";
 import { useBgStore } from "../../store/bgStore";
 import { useOverlayStore } from "../../store/overlayStore";
@@ -236,6 +239,15 @@ export const exportVideo = async (resolution: 720 | 1080) => {
     const overlayStoreData = useOverlayStore.getState();
 
     const barRenderer = new BarRenderer();
+    const ledRenderer = new LedRenderer();
+    const graphRenderer = new GraphRenderer();
+    const melSampleRate = buffer.sampleRate;
+    const melRanges = buildMelBinRanges(
+      dataArray.length * 2,
+      melSampleRate,
+      dataArray.length,
+    );
+    const melScratch = new Uint8Array(dataArray.length);
     const radialRenderer = new RadialRenderer();
 
     const particleRenderer = new ParticleRenderer();
@@ -467,10 +479,15 @@ export const exportVideo = async (resolution: 720 | 1080) => {
           ctx.globalCompositeOperation = "source-over";
           ctx.translate((layer.x || 0) * scaleX, (layer.y || 0) * scaleY);
 
+          const layerData =
+            config.scaleMode === "mel"
+              ? applyMelScale(dataArray, melRanges, melScratch)
+              : dataArray;
+
           if (config.primitive === "bar") {
             barRenderer.render(
               ctx,
-              dataArray,
+              layerData,
               config,
               width,
               height,
@@ -480,12 +497,32 @@ export const exportVideo = async (resolution: 720 | 1080) => {
           } else if (config.primitive === "radial") {
             radialRenderer.render(
               ctx,
-              dataArray,
+              layerData,
               config,
               width,
               height,
               layer.size || 75,
               layer.position || "center",
+            );
+          } else if (config.primitive === "led") {
+            ledRenderer.render(
+              ctx,
+              layerData,
+              config,
+              width,
+              height,
+              layer.size || 75,
+              layer.position || "bottom",
+            );
+          } else if (config.primitive === "graph") {
+            graphRenderer.render(
+              ctx,
+              layerData,
+              config,
+              width,
+              height,
+              layer.size || 75,
+              layer.position || "bottom",
             );
           }
 

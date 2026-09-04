@@ -1,22 +1,29 @@
-import { audioEngine } from '../audio/audioEngine';
-import { useVisualizerStore } from '../../store/visualizerStore';
-import { BarRenderer } from './BarRenderer';
-import { RadialRenderer } from './RadialRenderer';
-import { ParticleRenderer } from './ParticleRenderer';
-import { useExportStore } from '../../store/exportStore';
+import { audioEngine } from "../audio/audioEngine";
+import { useVisualizerStore } from "../../store/visualizerStore";
+import { BarRenderer } from "./BarRenderer";
+import { RadialRenderer } from "./RadialRenderer";
+import { LedRenderer } from "./LedRenderer";
+import { ParticleRenderer } from "./ParticleRenderer";
+import { useExportStore } from "../../store/exportStore";
+import { GraphRenderer } from "./GraphRenderer";
+import { buildMelBinRanges, applyMelScale } from "../audio/melScale";
 
 class RendererEngine {
   private canvas2d: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null = null;
   private container: HTMLDivElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
-  
+
   private barRenderer = new BarRenderer();
+  private melRanges: [number, number][] | null = null;
+  private melScratch: Uint8Array | null = null;
   private radialRenderer = new RadialRenderer();
+  private ledRenderer = new LedRenderer();
+  private graphRenderer = new GraphRenderer();
   private particleRenderer = new ParticleRenderer();
 
   private animationFrameId: number | null = null;
-  
+
   // Adaptive FPS
   private targetFps = 60;
   private fpsInterval = 1000 / 60;
@@ -24,19 +31,19 @@ class RendererEngine {
   private frameTimes: number[] = [];
 
   constructor() {
-    this.canvas2d = document.createElement('canvas');
-    this.canvas2d.style.position = 'absolute';
-    this.canvas2d.style.top = '0';
-    this.canvas2d.style.left = '0';
-    this.canvas2d.style.width = '100%';
-    this.canvas2d.style.height = '100%';
-    this.ctx = this.canvas2d.getContext('2d', { alpha: true });
+    this.canvas2d = document.createElement("canvas");
+    this.canvas2d.style.position = "absolute";
+    this.canvas2d.style.top = "0";
+    this.canvas2d.style.left = "0";
+    this.canvas2d.style.width = "100%";
+    this.canvas2d.style.height = "100%";
+    this.ctx = this.canvas2d.getContext("2d", { alpha: true });
   }
 
   public async mount(container: HTMLDivElement) {
     this.container = container;
     container.appendChild(this.canvas2d);
-    
+
     const width = container.clientWidth || 800;
     const height = container.clientHeight || 450;
     this.canvas2d.width = width;
@@ -74,7 +81,7 @@ class RendererEngine {
   private startLoop() {
     const loop = (timestamp: number) => {
       this.animationFrameId = requestAnimationFrame(loop);
-      
+
       const elapsed = timestamp - this.lastTime;
       if (elapsed > this.fpsInterval) {
         this.lastTime = timestamp - (elapsed % this.fpsInterval);
@@ -84,16 +91,33 @@ class RendererEngine {
     this.animationFrameId = requestAnimationFrame(loop);
   }
 
+  private getMelTransformed(data: Uint8Array): Uint8Array {
+    if (
+      !this.melRanges ||
+      !this.melScratch ||
+      this.melScratch.length !== data.length
+    ) {
+      const sampleRate = audioEngine.getSampleRate();
+      this.melRanges = buildMelBinRanges(
+        data.length * 2,
+        sampleRate,
+        data.length,
+      );
+      this.melScratch = new Uint8Array(data.length);
+    }
+    return applyMelScale(data, this.melRanges, this.melScratch);
+  }
+
   private renderFrame() {
     if (useExportStore.getState().isExporting) {
       return;
     }
 
     const t0 = performance.now();
-    
+
     const store = useVisualizerStore.getState();
     const data = audioEngine.getFrequencyData();
-    
+
     const width = this.canvas2d.width || (this.container?.clientWidth ?? 0);
     const height = this.canvas2d.height || (this.container?.clientHeight ?? 0);
 
@@ -103,7 +127,9 @@ class RendererEngine {
       this.ctx.clearRect(0, 0, width, height);
     }
 
-    const particleLayers = store.layers.filter(l => l.preset?.config.primitive === 'particle');
+    const particleLayers = store.layers.filter(
+      (l) => l.preset?.config.primitive === "particle",
+    );
     if (particleLayers.length > 0) {
       this.particleRenderer.setVisible(true);
       this.particleRenderer.render(data, particleLayers, width, height);
@@ -111,7 +137,7 @@ class RendererEngine {
       this.particleRenderer.setVisible(false);
     }
 
-    store.layers.forEach(layer => {
+    store.layers.forEach((layer) => {
       if (!layer.preset || !this.ctx) return;
       const config = layer.preset.config;
 
@@ -119,10 +145,49 @@ class RendererEngine {
       this.ctx.translate(layer.x || 0, layer.y || 0);
 
       try {
-        if (config.primitive === 'bar') {
-          this.barRenderer.render(this.ctx, data, config, width, height, layer.size, layer.position);
-        } else if (config.primitive === 'radial') {
-          this.radialRenderer.render(this.ctx, data, config, width, height, layer.size, layer.position);
+        const layerData =
+          config.scaleMode === "mel" ? this.getMelTransformed(data) : data;
+
+        if (config.primitive === "bar") {
+          this.barRenderer.render(
+            this.ctx,
+            layerData,
+            config,
+            width,
+            height,
+            layer.size,
+            layer.position,
+          );
+        } else if (config.primitive === "radial") {
+          this.radialRenderer.render(
+            this.ctx,
+            data,
+            config,
+            width,
+            height,
+            layer.size,
+            layer.position,
+          );
+        } else if (config.primitive === "led") {
+          this.ledRenderer.render(
+            this.ctx,
+            layerData,
+            config,
+            width,
+            height,
+            layer.size,
+            layer.position,
+          );
+        } else if (config.primitive === "graph") {
+          this.graphRenderer.render(
+            this.ctx,
+            layerData,
+            config,
+            width,
+            height,
+            layer.size,
+            layer.position,
+          );
         }
       } catch (err) {
         console.error("Gagal merender layer visualizer:", err);
