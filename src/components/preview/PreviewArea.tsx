@@ -58,6 +58,7 @@ export const PreviewArea: React.FC = () => {
         const normalized = bass / 255;
 
         const beatScale = 1 + normalized * 0.18;
+        const zoomScale = 1 + normalized * 0.35;
         const shakeVal =
           normalized > 0.4 ? (Math.random() - 0.5) * normalized * 18 : 0;
 
@@ -69,6 +70,7 @@ export const PreviewArea: React.FC = () => {
 
         const el = screenAreaRef.current;
         el.style.setProperty("--beat-scale", beatScale.toFixed(2));
+        el.style.setProperty("--beat-zoom", zoomScale.toFixed(3));
         el.style.setProperty("--beat-shake", `${shakeVal.toFixed(0)}px`);
         el.style.setProperty("--beat-pan", `${currentPan.toFixed(0)}px`);
         el.style.setProperty("--beat-flash", flashVal.toFixed(2));

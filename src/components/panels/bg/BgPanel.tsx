@@ -11,7 +11,6 @@ export const BgPanel: React.FC = () => {
     "Pan",
     "Shake",
     "Blitz",
-    "Flash",
     "Zoom",
   ];
   const handleSelectImage = async () => {

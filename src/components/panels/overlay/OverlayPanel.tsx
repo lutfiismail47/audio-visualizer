@@ -54,7 +54,6 @@ export const OverlayPanel: React.FC = () => {
     "Pan",
     "Denyut",
     "Blitz",
-    "Flash",
     "Float",
     "Shake",
     "Zoom",

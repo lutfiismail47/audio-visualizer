@@ -156,7 +156,7 @@ function pickGifCanvas(
   return canvases[canvases.length - 1];
 }
 
-export const exportVideo = async (resolution: 720 | 1080) => {
+export const exportVideo = async (resolution: 480 | 720 | 1080) => {
   isExportCancelled = false;
 
   if (useAudioStore.getState().isPlaying) {
@@ -181,10 +181,18 @@ export const exportVideo = async (resolution: 720 | 1080) => {
 
   if (!outputPath) return;
 
-  const width = resolution === 1080 ? 1920 : 1280;
-  const height = resolution === 1080 ? 1080 : 720;
-  const fps = 30;
+  let width = 1920;
+  let height = 1080;
 
+  if (resolution === 720) {
+    width = 1280;
+    height = 720;
+  } else if (resolution === 480) {
+    width = 854;
+    height = 480;
+  }
+
+  const fps = 30;
   const buffer = audioEngine.getAudioBuffer();
   if (!buffer) return;
 
@@ -322,7 +330,6 @@ export const exportVideo = async (resolution: 720 | 1080) => {
           normalized > 0.4 ? (Math.random() - 0.5) * normalized * 18 : 0;
         const panVal = Math.sin(timeSec * 1.5) * 40;
         const floatVal = Math.sin(timeSec * 2.0) * -20;
-        const flashVal = Math.max(0.15, 1 - normalized * 0.85);
         const blitzVal = normalized > 0.5 && Math.random() > 0.4 ? 0.1 : 1;
         const rotateCW = (timeSec * 0.1 * 360 * Math.PI) / 180;
         const rotateCCW = -(timeSec * 0.1 * 360 * Math.PI) / 180;
@@ -344,7 +351,6 @@ export const exportVideo = async (resolution: 720 | 1080) => {
           ctx.translate(shakeVal * scaleFactor, 0);
 
         let bgAlpha = 1;
-        if (bgStoreData.animation === "Flash") bgAlpha = flashVal;
         if (bgStoreData.animation === "Blitz") bgAlpha = blitzVal;
         ctx.globalAlpha = bgAlpha;
 
@@ -419,7 +425,6 @@ export const exportVideo = async (resolution: 720 | 1080) => {
               const rawOpacity = ov.opacity ?? 100;
               let alpha = rawOpacity > 1 ? rawOpacity / 100 : rawOpacity;
 
-              if (ov.animation === "Flash") alpha *= flashVal;
               if (ov.animation === "Blitz") alpha *= blitzVal;
               ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
               ctx.globalCompositeOperation = "source-over";
@@ -574,9 +579,7 @@ export const exportVideo = async (resolution: 720 | 1080) => {
           else if (t.animation === "Shake")
             ctx.translate(shakeVal * scaleFactor, 0);
 
-          let alpha = (t.opacity ?? 100) / 100;
-          if (t.animation === "Flash") alpha *= flashVal;
-          if (t.animation === "Blitz") alpha *= blitzVal;
+          const alpha = (t.opacity ?? 100) / 100;
           ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
 
           // Skalakan ukuran teks agar proporsi identik dengan tampilan monitor
